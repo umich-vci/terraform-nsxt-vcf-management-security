@@ -6,7 +6,7 @@ locals {
   domains = merge(
     {
       (local.mgmt) = {
-        vcenter_prefix      = var.management_domain.vcenter_prefix
+        vcenter_name        = var.management_domain.vcenter_name
         nsx_manager_cluster = var.management_domain.nsx_manager_cluster
         hosts               = var.management_domain.hosts
         edges               = var.management_domain.edges
@@ -18,7 +18,7 @@ locals {
     },
     {
       for k, w in var.workload_domains : k => {
-        vcenter_prefix      = w.vcenter_prefix
+        vcenter_name        = w.vcenter_name
         nsx_manager_cluster = w.nsx_manager_cluster
         hosts               = w.hosts
         edges               = w.edges
@@ -62,7 +62,7 @@ module "domain" {
 
   name                = each.key
   instance            = local.instance
-  vcenter_prefix      = each.value.vcenter_prefix
+  vcenter_name        = each.value.vcenter_name
   hosts               = each.value.hosts
   edges               = each.value.edges
   supervisors         = each.value.supervisors

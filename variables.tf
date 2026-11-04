@@ -39,18 +39,18 @@ variable "fleet_management" {
     vcf_automation_prefix             = string
     vcf_automation_lb_ips             = list(string)
     vcf_automation_external_lb_ips    = optional(list(string), [])
-    sddc_manager_prefix               = string
-    license_server_prefix             = string
-    license_hub_prefix                = string
-    ssp_installer_prefix              = string
+    sddc_manager_name                 = string
+    license_server_name               = string
+    license_hub_name                  = string
+    ssp_installer_name                = string
     vcf_operations_networks = optional(object({
       platform_prefix  = string
       collector_prefix = string
     }))
   })
   description = <<-EOT
-    VCF fleet management components. `*_prefix` values are VM name prefixes; a VM is matched when its
-    name starts with the prefix. `vcf_management_services_ip_pool` is the IP pool VCF Management
+    VCF fleet management components. `*_name` values are the VM names of single-instance components;
+    `*_prefix` values are VM name prefixes of components that can have several VMs. `vcf_management_services_ip_pool` is the IP pool VCF Management
     Services takes node and service (VIP) addresses from, including the log management VIPs.
     `vcf_automation_lb_ips` are the VCF Automation native load balancer IPs. Leave
     `vcf_operations_networks` unset if VCF Operations for Networks is not deployed.
@@ -58,9 +58,9 @@ variable "fleet_management" {
 
   validation {
     condition = alltrue([
-      for k, v in var.fleet_management : length(v) > 0 if endswith(k, "_prefix")
+      for k, v in var.fleet_management : length(v) > 0 if endswith(k, "_prefix") || endswith(k, "_name")
     ]) && try(length(var.fleet_management.vcf_operations_networks.platform_prefix) > 0 && length(var.fleet_management.vcf_operations_networks.collector_prefix) > 0, true)
-    error_message = "VM name prefixes must not be empty."
+    error_message = "VM names and prefixes must not be empty."
   }
 }
 
@@ -101,7 +101,7 @@ variable "nsx_manager_clusters" {
 variable "management_domain" {
   type = object({
     name                = string
-    vcenter_prefix      = string
+    vcenter_name        = string
     nsx_manager_cluster = string
     hosts               = list(string)
     edges               = optional(list(string), [])
@@ -115,8 +115,8 @@ variable "management_domain" {
   EOT
 
   validation {
-    condition     = can(regex("^[a-z0-9][a-z0-9_-]*$", var.management_domain.name)) && length(var.management_domain.vcenter_prefix) > 0
-    error_message = "management_domain.name must be lower-case letters, digits, '-' or '_', and vcenter_prefix must not be empty."
+    condition     = can(regex("^[a-z0-9][a-z0-9_-]*$", var.management_domain.name)) && length(var.management_domain.vcenter_name) > 0
+    error_message = "management_domain.name must be lower-case letters, digits, '-' or '_', and vcenter_name must not be empty."
   }
 
   validation {
@@ -132,7 +132,7 @@ variable "management_domain" {
 
 variable "workload_domains" {
   type = map(object({
-    vcenter_prefix      = string
+    vcenter_name        = string
     nsx_manager_cluster = string
     hosts               = list(string)
     edges               = optional(list(string), [])
@@ -150,9 +150,9 @@ variable "workload_domains" {
 
   validation {
     condition = alltrue([
-      for k, w in var.workload_domains : can(regex("^[a-z0-9][a-z0-9_-]*$", k)) && k != var.management_domain.name && length(w.vcenter_prefix) > 0
+      for k, w in var.workload_domains : can(regex("^[a-z0-9][a-z0-9_-]*$", k)) && k != var.management_domain.name && length(w.vcenter_name) > 0
     ])
-    error_message = "Workload domain keys must be lower-case letters, digits, '-' or '_' and differ from the management domain name; vcenter_prefix must not be empty."
+    error_message = "Workload domain keys must be lower-case letters, digits, '-' or '_' and differ from the management domain name; vcenter_name must not be empty."
   }
 
   validation {

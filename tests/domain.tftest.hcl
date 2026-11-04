@@ -7,10 +7,10 @@ mock_provider "nsxt" {
 }
 
 variables {
-  name           = "w01"
-  instance       = "VCF01"
-  vcenter_prefix = "w01-vc01"
-  hosts          = ["203.0.113.0/28"]
+  name         = "w01"
+  instance     = "VCF01"
+  vcenter_name = "w01-vc01"
+  hosts        = ["203.0.113.0/28"]
   cluster_group_paths = {
     nsx = "/infra/domains/default/groups/W01_NSX"
   }
@@ -43,6 +43,10 @@ run "minimal_domain" {
   assert {
     condition     = nsxt_policy_group.domain.nsx_id == "VCF01_W01" && nsxt_policy_group.vc.nsx_id == "W01_VC"
     error_message = "Unexpected group names."
+  }
+  assert {
+    condition     = one(one(nsxt_policy_group.vc.criteria).condition).operator == "EQUALS" && one(one(nsxt_policy_group.vc.criteria).condition).value == "w01-vc01"
+    error_message = "The vCenter group should match the exact VM name."
   }
   assert {
     condition     = keys(nsxt_policy_group.ip) == ["hosts"] && nsxt_policy_group.ip["hosts"].nsx_id == "W01_HOSTS"

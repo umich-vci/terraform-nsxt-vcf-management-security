@@ -12,14 +12,14 @@ variable "fleet_management" {
     vcf_automation_prefix             = string
     vcf_automation_lb_ips             = list(string)
     vcf_automation_external_lb_ips    = optional(list(string), [])
-    sddc_manager_prefix               = string
-    license_server_prefix             = string
-    license_hub_prefix                = string
-    ssp_installer_prefix              = string
+    sddc_manager_name                 = string
+    license_server_name               = string
+    license_hub_name                  = string
+    ssp_installer_name                = string
     vcf_operations_networks = optional(object({
       platform_prefix  = string
       collector_prefix = string
     }))
   })
-  description = "VM name prefixes and IP addresses of the VCF fleet management components."
+  description = "VM names (single-instance components), VM name prefixes and IP addresses of the VCF fleet management components."
 }

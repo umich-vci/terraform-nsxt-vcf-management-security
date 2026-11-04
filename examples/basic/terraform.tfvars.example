@@ -25,10 +25,10 @@ fleet_management = {
   vcf_management_services_ip_pool   = ["198.51.100.64/26"]
   vcf_automation_prefix             = "vcf-auto01-"
   vcf_automation_lb_ips             = ["198.51.100.20"]
-  sddc_manager_prefix               = "m01-sddc01"
-  license_server_prefix             = "vcf-lic01"
-  license_hub_prefix                = "vcf-lhub01"
-  ssp_installer_prefix              = "vcf-sspi01"
+  sddc_manager_name                 = "m01-sddc01"
+  license_server_name               = "vcf-lic01"
+  license_hub_name                  = "vcf-lhub01"
+  ssp_installer_name                = "vcf-sspi01"
 
   # Remove if VCF Operations for Networks is not deployed.
   vcf_operations_networks = {
@@ -57,7 +57,7 @@ nsx_manager_clusters = {
 
 management_domain = {
   name                = "m01"
-  vcenter_prefix      = "m01-vc01"
+  vcenter_name        = "m01-vc01"
   nsx_manager_cluster = "m01"
   hosts               = ["198.51.100.0/27"]
   edges               = ["198.51.100.40-198.51.100.43"]
@@ -65,7 +65,7 @@ management_domain = {
 
 workload_domains = {
   w01 = {
-    vcenter_prefix      = "w01-vc01"
+    vcenter_name        = "w01-vc01"
     nsx_manager_cluster = "w01"
     hosts               = ["203.0.113.0/28"]
     edges               = ["203.0.113.16-203.0.113.19"]
@@ -73,7 +73,7 @@ workload_domains = {
     avi_service_engines = ["203.0.113.96/28"]
   }
   w02 = {
-    vcenter_prefix      = "w02-vc01"
+    vcenter_name        = "w02-vc01"
     nsx_manager_cluster = "w01"
     hosts               = ["203.0.113.128/28"]
   }

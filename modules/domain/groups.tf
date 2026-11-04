@@ -29,8 +29,8 @@ resource "nsxt_policy_group" "vc" {
     condition {
       member_type = "VirtualMachine"
       key         = "Name"
-      operator    = "STARTSWITH"
-      value       = var.vcenter_prefix
+      operator    = "EQUALS"
+      value       = var.vcenter_name
     }
   }
 }

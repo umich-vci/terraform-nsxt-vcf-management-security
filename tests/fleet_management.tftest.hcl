@@ -42,10 +42,10 @@ variables {
     vcf_management_services_prefix    = "vcfms-"
     vcf_automation_prefix             = "vcfa-"
     vcf_automation_lb_ips             = ["198.51.100.20"]
-    sddc_manager_prefix               = "sddc01"
-    license_server_prefix             = "lic01"
-    license_hub_prefix                = "lhub01"
-    ssp_installer_prefix              = "test-sspi"
+    sddc_manager_name                 = "sddc01"
+    license_server_name               = "lic01"
+    license_hub_name                  = "lhub01"
+    ssp_installer_name                = "test-sspi"
   }
 }
 
@@ -65,6 +65,10 @@ run "without_optional_components" {
   assert {
     condition     = !contains(keys(data.nsxt_policy_vms.tagged), "ops_networks") && length(nsxt_policy_group.named["ops_net_cn"].criteria) == 0
     error_message = "Without VCF Operations for Networks its VMs are not looked up and its collector group is empty."
+  }
+  assert {
+    condition     = data.nsxt_policy_vms.tagged["sddc"].display_name == "^sddc01$" && data.nsxt_policy_vms.tagged["ops"].display_name == "^test-ops"
+    error_message = "Single-instance components should match their exact VM name, the others a VM name prefix."
   }
   assert {
     condition     = length(nsxt_policy_vm_tags.tagged) == 6 && nsxt_policy_vm_tags.tagged["ops/test-ops-b"].instance_id == "bios-ops-b"
@@ -98,10 +102,10 @@ run "with_optional_components" {
       vcf_automation_prefix             = "vcfa-"
       vcf_automation_lb_ips             = ["198.51.100.20"]
       vcf_automation_external_lb_ips    = ["192.0.2.80"]
-      sddc_manager_prefix               = "sddc01"
-      license_server_prefix             = "lic01"
-      license_hub_prefix                = "lhub01"
-      ssp_installer_prefix              = "test-sspi"
+      sddc_manager_name                 = "sddc01"
+      license_server_name               = "lic01"
+      license_hub_name                  = "lhub01"
+      ssp_installer_name                = "test-sspi"
       vcf_operations_networks           = { platform_prefix = "opsnet01", collector_prefix = "opsnetc" }
     }
   }

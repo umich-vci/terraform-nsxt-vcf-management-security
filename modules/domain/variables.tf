@@ -8,9 +8,9 @@ variable "instance" {
   description = "Upper-case VCF instance name used as the group name prefix (e.g. VCF01)."
 }
 
-variable "vcenter_prefix" {
+variable "vcenter_name" {
   type        = string
-  description = "VM name prefix of the domain's vCenter Server."
+  description = "VM name of the domain's vCenter Server."
 }
 
 variable "hosts" {

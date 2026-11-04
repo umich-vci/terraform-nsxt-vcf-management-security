@@ -94,17 +94,17 @@ variables {
     vcf_management_services_ip_pool   = ["198.51.100.64/26"]
     vcf_automation_prefix             = "vcfa-"
     vcf_automation_lb_ips             = ["198.51.100.20"]
-    sddc_manager_prefix               = "sddc01"
-    license_server_prefix             = "lic01"
-    license_hub_prefix                = "lhub01"
-    ssp_installer_prefix              = "test-sspi"
+    sddc_manager_name                 = "sddc01"
+    license_server_name               = "lic01"
+    license_hub_name                  = "lhub01"
+    ssp_installer_name                = "test-sspi"
   }
   nsx_manager_clusters = {
     m01 = { vm_name_prefix = "m01-nsx01" }
   }
   management_domain = {
     name                = "m01"
-    vcenter_prefix      = "m01-vc01"
+    vcenter_name        = "m01-vc01"
     nsx_manager_cluster = "m01"
     hosts               = ["198.51.100.0/27"]
   }
@@ -140,8 +140,8 @@ run "workload_domains_share_nsx_cluster" {
       }
     }
     workload_domains = {
-      w01 = { vcenter_prefix = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"], supervisors = ["203.0.113.64/28"], avi_service_engines = ["203.0.113.96/28"] }
-      w02 = { vcenter_prefix = "w02-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.16/28"] }
+      w01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"], supervisors = ["203.0.113.64/28"], avi_service_engines = ["203.0.113.96/28"] }
+      w02 = { vcenter_name = "w02-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.16/28"] }
     }
   }
 
@@ -179,7 +179,7 @@ run "ssp_defaults_to_management_domain" {
       }
     }
     workload_domains = {
-      w01 = { vcenter_prefix = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"] }
+      w01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"] }
     }
   }
 
@@ -192,7 +192,7 @@ run "ssp_defaults_to_management_domain" {
 run "workload_domain_uses_management_nsx" {
   variables {
     workload_domains = {
-      w01 = { vcenter_prefix = "w01-vc01", nsx_manager_cluster = "m01", hosts = ["203.0.113.0/28"] }
+      w01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "m01", hosts = ["203.0.113.0/28"] }
     }
   }
 
@@ -206,7 +206,7 @@ run "rejects_unknown_nsx_cluster" {
   command = plan
   variables {
     workload_domains = {
-      w01 = { vcenter_prefix = "w01-vc01", nsx_manager_cluster = "nope", hosts = ["203.0.113.0/28"] }
+      w01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "nope", hosts = ["203.0.113.0/28"] }
     }
   }
   expect_failures = [var.workload_domains]
@@ -221,8 +221,8 @@ run "rejects_ssp_domain_on_other_cluster" {
       w02 = { vm_name_prefix = "w02-nsx01" }
     }
     workload_domains = {
-      w01 = { vcenter_prefix = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"] }
-      w02 = { vcenter_prefix = "w02-vc01", nsx_manager_cluster = "w02", hosts = ["203.0.113.16/28"] }
+      w01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"] }
+      w02 = { vcenter_name = "w02-vc01", nsx_manager_cluster = "w02", hosts = ["203.0.113.16/28"] }
     }
   }
   expect_failures = [var.workload_domains]
@@ -233,7 +233,7 @@ run "rejects_avi_service_engines_without_avi" {
   variables {
     management_domain = {
       name                = "m01"
-      vcenter_prefix      = "m01-vc01"
+      vcenter_name        = "m01-vc01"
       nsx_manager_cluster = "m01"
       hosts               = ["198.51.100.0/27"]
       avi_service_engines = ["198.51.100.96/28"]
@@ -246,7 +246,7 @@ run "rejects_workload_key_equal_to_management" {
   command = plan
   variables {
     workload_domains = {
-      m01 = { vcenter_prefix = "w01-vc01", nsx_manager_cluster = "m01", hosts = ["203.0.113.0/28"] }
+      m01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "m01", hosts = ["203.0.113.0/28"] }
     }
   }
   expect_failures = [var.workload_domains]

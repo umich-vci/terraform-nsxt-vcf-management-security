@@ -1,16 +1,17 @@
 locals {
   fm = var.fleet_management
 
-  # Components grouped by NSX tag (MDS-REQD-CFG-012). Each is tagged vcf_fm|<tag>.
+  # Components grouped by NSX tag (MDS-REQD-CFG-012). Each is tagged vcf_fm|<tag>. Single-instance
+  # components are matched by their exact VM name, the others by VM name prefix.
   tagged = {
-    ops            = { group = "VCF_OPS", tag = "ops", prefix = local.fm.vcf_operations_prefix }
-    sddc           = { group = "${var.instance}_SDDC", tag = "sddc", prefix = local.fm.sddc_manager_prefix }
-    license_server = { group = "${var.instance}_LIC", tag = "lic", prefix = local.fm.license_server_prefix }
-    license_hub    = { group = "${var.instance}_LHUB", tag = "lhub", prefix = local.fm.license_hub_prefix }
-    ssp_installer  = { group = "${var.instance}_SSPI01", tag = "sspi", prefix = local.fm.ssp_installer_prefix }
-    ops_networks   = { group = "VCF_OPS_NET", tag = "ops_net", prefix = try(local.fm.vcf_operations_networks.platform_prefix, null) }
+    ops            = { group = "VCF_OPS", tag = "ops", match = local.fm.vcf_operations_prefix, exact = false }
+    sddc           = { group = "${var.instance}_SDDC", tag = "sddc", match = local.fm.sddc_manager_name, exact = true }
+    license_server = { group = "${var.instance}_LIC", tag = "lic", match = local.fm.license_server_name, exact = true }
+    license_hub    = { group = "${var.instance}_LHUB", tag = "lhub", match = local.fm.license_hub_name, exact = true }
+    ssp_installer  = { group = "${var.instance}_SSPI01", tag = "sspi", match = local.fm.ssp_installer_name, exact = true }
+    ops_networks   = { group = "VCF_OPS_NET", tag = "ops_net", match = try(local.fm.vcf_operations_networks.platform_prefix, null), exact = false }
   }
-  tagged_lookups = { for k, c in local.tagged : k => c if c.prefix != null }
+  tagged_lookups = { for k, c in local.tagged : k => c if c.match != null }
 
   # Components grouped by VM name prefix (MDS-REQD-CFG-010/011). A null prefix gives an empty group.
   named = {
@@ -30,10 +31,10 @@ locals {
 data "nsxt_policy_vms" "tagged" {
   for_each = local.tagged_lookups
 
-  display_name = "^${replace(each.value.prefix, ".", "\\.")}"
+  display_name = "^${replace(each.value.match, ".", "\\.")}${each.value.exact ? "$" : ""}"
 }
 
-# nsxt_policy_vm_tags owns the whole tag set of a VM, so every VM must be matched by exactly one prefix.
+# nsxt_policy_vm_tags owns the whole tag set of a VM, so every VM must be matched by exactly one lookup.
 resource "nsxt_policy_vm_tags" "tagged" {
   for_each = local.tagged_vms
 
@@ -47,7 +48,7 @@ resource "nsxt_policy_vm_tags" "tagged" {
   lifecycle {
     precondition {
       condition     = length(local.tagged_vm_ids) == length(distinct(local.tagged_vm_ids))
-      error_message = "A VM matches more than one fleet management VM name prefix; make the prefixes unique."
+      error_message = "A VM matches more than one fleet management VM name or prefix; make them unique."
     }
   }
 }
@@ -55,7 +56,7 @@ resource "nsxt_policy_vm_tags" "tagged" {
 check "tagged_vms_found" {
   assert {
     condition     = alltrue([for d in data.nsxt_policy_vms.tagged : length(d.items) > 0])
-    error_message = "No VMs matched the prefix for: ${join(", ", [for k, d in data.nsxt_policy_vms.tagged : k if length(d.items) == 0])}."
+    error_message = "No VMs matched the VM name or prefix for: ${join(", ", [for k, d in data.nsxt_policy_vms.tagged : k if length(d.items) == 0])}."
   }
 }
 
