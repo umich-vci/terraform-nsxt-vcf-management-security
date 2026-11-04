@@ -52,6 +52,8 @@ module "nsx_manager_cluster" {
   name           = each.key
   vm_name_prefix = each.value.vm_name_prefix
   avi            = each.value.avi
+  edges          = each.value.edges
+  domains        = [for d, v in local.domains : d if v.nsx_manager_cluster == each.key]
   ssp            = each.value.ssp == null ? null : { node_prefix = each.value.ssp.node_prefix, service_pool = each.value.ssp.service_pool }
   ssp_domain     = each.value.ssp == null ? null : coalesce(each.value.ssp.domain, local.mgmt)
 }

@@ -21,7 +21,7 @@ variable "hosts" {
 variable "edges" {
   type        = list(string)
   default     = []
-  description = "NSX Edge node management IP addresses, ranges or CIDRs."
+  description = "Management IP addresses, ranges or CIDRs of NSX Edge nodes dedicated to this domain."
 }
 
 variable "supervisors" {

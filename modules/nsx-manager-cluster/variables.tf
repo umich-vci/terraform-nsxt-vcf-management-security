@@ -25,6 +25,18 @@ variable "ssp" {
   description = "Security Services Platform instance onboarded to this NSX Manager. Null if SSP is not deployed."
 }
 
+variable "edges" {
+  type        = list(string)
+  default     = []
+  description = "Management IP addresses, ranges or CIDRs of NSX Edge nodes shared by every domain using this NSX Manager."
+}
+
+variable "domains" {
+  type        = list(string)
+  default     = []
+  description = "Keys of the domains using this NSX Manager cluster."
+}
+
 variable "ssp_domain" {
   type        = string
   default     = null

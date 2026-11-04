@@ -65,6 +65,7 @@ variable "fleet_management" {
 variable "nsx_manager_clusters" {
   type = map(object({
     vm_name_prefix = string
+    edges          = optional(list(string), [])
     avi = optional(object({
       controller_prefix = string
     }))
@@ -76,7 +77,9 @@ variable "nsx_manager_clusters" {
   }))
   description = <<-EOT
     NSX Manager clusters, including the management domain's, by key. Several domains can share one
-    cluster. `avi` is the Avi Load Balancer controller cluster onboarded to it (one per NSX Manager).
+    cluster. `edges` lists NSX Edge nodes shared by every domain using the cluster; edges dedicated to
+    one domain go on that domain instead.
+    `avi` is the Avi Load Balancer controller cluster onboarded to it (one per NSX Manager).
     `ssp` is the Security Services Platform instance onboarded to it; `ssp.domain` is the domain
     hosting the SSP VMs (default: the management domain), which must use this cluster or be the
     management domain. `ssp.service_pool` is the SSP Service IP Pool.
@@ -108,7 +111,8 @@ variable "management_domain" {
   })
   description = <<-EOT
     The management domain. `name` is its key (e.g. m01). `nsx_manager_cluster` is a key of
-    `nsx_manager_clusters`. `avi_service_engines` lists the Avi Service Engine management networks
+    `nsx_manager_clusters`. `edges` lists NSX Edge nodes dedicated to this domain (shared ones go on
+    the NSX Manager cluster). `avi_service_engines` lists the Avi Service Engine management networks
     of SEs running in this domain.
   EOT
 
@@ -142,7 +146,8 @@ variable "workload_domains" {
   description = <<-EOT
     Workload domains by key (e.g. w01). `nsx_manager_cluster` is a key of `nsx_manager_clusters`; it
     can be shared with other workload domains or the management domain. `supervisors` lists the
-    vSphere Supervisor management networks. `avi_service_engines` lists the Avi Service Engine
+    vSphere Supervisor management networks. `edges` lists NSX Edge nodes dedicated to this domain
+    (shared ones go on the NSX Manager cluster). `avi_service_engines` lists the Avi Service Engine
     management networks of SEs running in this domain.
   EOT
 

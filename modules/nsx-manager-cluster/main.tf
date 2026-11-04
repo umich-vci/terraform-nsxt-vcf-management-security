@@ -52,3 +52,27 @@ resource "nsxt_policy_group" "ssp_svc" {
     }
   }
 }
+
+# Edge nodes shared by the domains using this NSX Manager. One group tag per domain places the
+# group in each of their nested groups.
+resource "nsxt_policy_group" "edge" {
+  count = length(var.edges) > 0 ? 1 : 0
+
+  nsx_id       = "${local.prefix}_NSX_EDGE"
+  display_name = "${local.prefix}_NSX_EDGE"
+  group_type   = "IPAddress"
+
+  dynamic "tag" {
+    for_each = toset(var.domains)
+    content {
+      scope = tag.value
+      tag   = "nsx_edge"
+    }
+  }
+
+  criteria {
+    ipaddress_expression {
+      ip_addresses = var.edges
+    }
+  }
+}

@@ -134,6 +134,7 @@ run "workload_domains_share_nsx_cluster" {
       m01 = { vm_name_prefix = "m01-nsx01" }
       w01 = {
         vm_name_prefix = "w01-nsx01"
+        edges          = ["203.0.113.48/29"]
         avi            = { controller_prefix = "w01-avi01" }
         ssp            = { node_prefix = "w01-ssp-", service_pool = ["203.0.113.32/28"], domain = "w01" }
       }
@@ -157,6 +158,10 @@ run "workload_domains_share_nsx_cluster" {
   assert {
     condition     = contains(output.domain_group_paths["w01"].member_paths, "/infra/domains/default/groups/W01_SSP") && !contains(output.domain_group_paths["w02"].member_paths, "/infra/domains/default/groups/W01_SSP") && !contains(output.domain_group_paths["m01"].member_paths, "/infra/domains/default/groups/W01_SSP")
     error_message = "The SSP should only be nested into its hosting domain."
+  }
+  assert {
+    condition     = output.nsx_manager_cluster_group_paths["w01"].edge != null && output.nsx_manager_cluster_group_paths["m01"].edge == null
+    error_message = "Only the cluster with shared edges should have an edge group."
   }
   assert {
     condition     = output.domain_group_paths["w01"].sup != null && output.domain_group_paths["w02"].sup == null
