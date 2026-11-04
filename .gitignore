@@ -1,0 +1,21 @@
+# Local working directories and state
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Reusable module: consumers pin provider versions in their own lock files
+.terraform.lock.hcl
+
+# Variable files may contain secrets; examples are committed as *.tfvars.example
+*.tfvars
+*.tfvars.json
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+.DS_Store
