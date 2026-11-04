@@ -59,7 +59,7 @@ run "without_optional_components" {
     error_message = "Unexpected tag-based group names."
   }
   assert {
-    condition     = toset([for g in nsxt_policy_group.named : g.nsx_id]) == toset(["VCF01_OPS_CP", "VCF01_OPS_NET_CN", "VCF_A"])
+    condition     = toset([for g in nsxt_policy_group.named : g.nsx_id]) == toset(["VCF01_OPS_CP", "VCF01_OPS_NET_CN", "VCF_A", "VCF01_MSVC"])
     error_message = "Unexpected name-based group names."
   }
   assert {
@@ -79,8 +79,8 @@ run "without_optional_components" {
     error_message = "The SSP Installer should be tagged with the vcf_fm scope, not a domain scope."
   }
   assert {
-    condition     = length(nsxt_policy_group.msvc.criteria) == 1 && length(nsxt_policy_group.vcf_a_lb["vcf_a_ext_lb"].criteria) == 0
-    error_message = "Without an IP pool or external load balancer those criteria are absent."
+    condition     = length(nsxt_policy_group.vcf_a_lb["vcf_a_ext_lb"].criteria) == 0
+    error_message = "Without an external load balancer its group is empty."
   }
   assert {
     condition     = length(one(nsxt_policy_group.vcf_fm.criteria).path_expression[0].member_paths) == 1
@@ -98,7 +98,6 @@ run "with_optional_components" {
       vcf_operations_prefix             = "test-ops"
       vcf_operations_cloud_proxy_prefix = "cp01"
       vcf_management_services_prefix    = "vcfms-"
-      vcf_management_services_ip_pool   = ["198.51.100.64/26"]
       vcf_automation_prefix             = "vcfa-"
       vcf_automation_lb_ips             = ["198.51.100.20"]
       vcf_automation_external_lb_ips    = ["192.0.2.80"]
@@ -111,8 +110,8 @@ run "with_optional_components" {
   }
 
   assert {
-    condition     = length(nsxt_policy_group.msvc.criteria) == 2 && length(nsxt_policy_group.msvc.conjunction) == 1
-    error_message = "VCF01_MSVC should hold the node VMs OR the Management Services IP pool."
+    condition     = length(nsxt_policy_group.vcf_a_lb["vcf_a_ext_lb"].criteria) == 1
+    error_message = "The external load balancer group should hold its IPs."
   }
   assert {
     condition     = contains(keys(nsxt_policy_vm_tags.tagged), "ops_networks/opsnet01") && length(nsxt_policy_group.named["ops_net_cn"].criteria) == 1

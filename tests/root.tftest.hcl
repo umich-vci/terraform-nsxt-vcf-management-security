@@ -91,7 +91,6 @@ variables {
     vcf_operations_prefix             = "test-ops"
     vcf_operations_cloud_proxy_prefix = "cp01"
     vcf_management_services_prefix    = "vcfms-"
-    vcf_management_services_ip_pool   = ["198.51.100.64/26"]
     vcf_automation_prefix             = "vcfa-"
     vcf_automation_lb_ips             = ["198.51.100.20"]
     sddc_manager_name                 = "sddc01"

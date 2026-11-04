@@ -22,7 +22,6 @@ fleet_management = {
   vcf_operations_prefix             = "vcf-ops01"
   vcf_operations_cloud_proxy_prefix = "vcf-cp01"
   vcf_management_services_prefix    = "vcf-ms01-"
-  vcf_management_services_ip_pool   = ["198.51.100.64/26"]
   vcf_automation_prefix             = "vcf-auto01-"
   vcf_automation_lb_ips             = ["198.51.100.20"]
   sddc_manager_name                 = "m01-sddc01"

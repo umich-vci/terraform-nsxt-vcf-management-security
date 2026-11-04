@@ -35,7 +35,6 @@ variable "fleet_management" {
     vcf_operations_prefix             = string
     vcf_operations_cloud_proxy_prefix = string
     vcf_management_services_prefix    = string
-    vcf_management_services_ip_pool   = optional(list(string), [])
     vcf_automation_prefix             = string
     vcf_automation_lb_ips             = list(string)
     vcf_automation_external_lb_ips    = optional(list(string), [])
@@ -50,8 +49,7 @@ variable "fleet_management" {
   })
   description = <<-EOT
     VCF fleet management components. `*_name` values are the VM names of single-instance components;
-    `*_prefix` values are VM name prefixes of components that can have several VMs. `vcf_management_services_ip_pool` is the IP pool VCF Management
-    Services takes node and service (VIP) addresses from, including the log management VIPs.
+    `*_prefix` values are VM name prefixes of components that can have several VMs.
     `vcf_automation_lb_ips` are the VCF Automation native load balancer IPs. Leave
     `vcf_operations_networks` unset if VCF Operations for Networks is not deployed.
   EOT

@@ -26,7 +26,6 @@ module "vcf_management_security" {
     vcf_operations_prefix             = "vcf-ops01"
     vcf_operations_cloud_proxy_prefix = "vcf-cp01"
     vcf_management_services_prefix    = "vcf-ms01-"
-    vcf_management_services_ip_pool   = ["198.51.100.64/26"]
     vcf_automation_prefix             = "vcf-auto01-"
     vcf_automation_lb_ips             = ["198.51.100.20"]
     sddc_manager_name                 = "m01-sddc01"
@@ -83,9 +82,9 @@ into that domain only.
 **Avi Service Engines** run in workload domain clusters, so their networks are given per domain
 (`avi_service_engines`).
 
-**VCF 9.1 log management** runs on VCF Management Services, and log sources send to its integrated
-load balancer VIPs. `VCF01_MSVC` therefore contains the Management Services VMs and
-`vcf_management_services_ip_pool`.
+**VCF 9.1 log management** runs on VCF Management Services. Log sources send to its integrated load
+balancer VIPs, which NSX discovers on the Management Services node holding them, so `VCF01_MSVC`
+(matched by VM name) covers log ingestion.
 
 ### Groups
 
@@ -94,8 +93,7 @@ load balancer VIPs. `VCF01_MSVC` therefore contains the Management Services VMs 
 | `VCF_FLEET` | `VCF_FM` and every domain group |
 | `VCF_FM` | The fleet management groups below |
 | `VCF_OPS`, `VCF01_SDDC`, `VCF01_LIC`, `VCF01_LHUB`, `VCF01_SSPI01`, `VCF_OPS_NET` | VM tag `vcf_fm\|<component>`, applied by the module to the VM with that name (single-instance components) or the VMs with that prefix |
-| `VCF01_OPS_CP`, `VCF01_OPS_NET_CN`, `VCF_A` | VM name starts with the prefix |
-| `VCF01_MSVC` | VM name starts with the prefix, or IP in the Management Services pool |
+| `VCF01_OPS_CP`, `VCF01_OPS_NET_CN`, `VCF_A`, `VCF01_MSVC` | VM name starts with the prefix |
 | `VCF_A_LB`, `VCF_A_EXT_LB` | VCF Automation native / external load balancer IPs |
 | `VCF01_<D>` | IP groups tagged with scope `<d>`, plus `<D>_VC`, the cluster's `<C>_NSX` / `<C>_AVI`, and SSPs hosted in the domain |
 | `<D>_VC` | VM name equals `vcenter_name` (survives reduced-downtime upgrades) |
@@ -204,7 +202,7 @@ No resources.
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_external_services"></a> [external\_services](#input\_external\_services) | IP addresses, ranges or CIDRs of the infrastructure and external services the VCF fleet uses.<br/>An empty list creates an empty group, so the rules for that service match nothing.<br/>`log_archive` holds the NFS or S3 targets that log management archives to. | <pre>object({<br/>    bastion     = optional(list(string), [])<br/>    tools       = optional(list(string), [])<br/>    backup      = optional(list(string), [])<br/>    smtp        = optional(list(string), [])<br/>    siem        = optional(list(string), [])<br/>    dns         = list(string)<br/>    ntp         = list(string)<br/>    dhcp        = optional(list(string), [])<br/>    ad          = optional(list(string), [])<br/>    syslog      = optional(list(string), [])<br/>    log_archive = optional(list(string), [])<br/>  })</pre> | n/a | yes |
-| <a name="input_fleet_management"></a> [fleet\_management](#input\_fleet\_management) | VCF fleet management components. `*_name` values are the VM names of single-instance components;<br/>`*_prefix` values are VM name prefixes of components that can have several VMs. `vcf_management_services_ip_pool` is the IP pool VCF Management<br/>Services takes node and service (VIP) addresses from, including the log management VIPs.<br/>`vcf_automation_lb_ips` are the VCF Automation native load balancer IPs. Leave<br/>`vcf_operations_networks` unset if VCF Operations for Networks is not deployed. | <pre>object({<br/>    vcf_operations_prefix             = string<br/>    vcf_operations_cloud_proxy_prefix = string<br/>    vcf_management_services_prefix    = string<br/>    vcf_management_services_ip_pool   = optional(list(string), [])<br/>    vcf_automation_prefix             = string<br/>    vcf_automation_lb_ips             = list(string)<br/>    vcf_automation_external_lb_ips    = optional(list(string), [])<br/>    sddc_manager_name                 = string<br/>    license_server_name               = string<br/>    license_hub_name                  = string<br/>    ssp_installer_name                = string<br/>    vcf_operations_networks = optional(object({<br/>      platform_prefix  = string<br/>      collector_prefix = string<br/>    }))<br/>  })</pre> | n/a | yes |
+| <a name="input_fleet_management"></a> [fleet\_management](#input\_fleet\_management) | VCF fleet management components. `*_name` values are the VM names of single-instance components;<br/>`*_prefix` values are VM name prefixes of components that can have several VMs.<br/>`vcf_automation_lb_ips` are the VCF Automation native load balancer IPs. Leave<br/>`vcf_operations_networks` unset if VCF Operations for Networks is not deployed. | <pre>object({<br/>    vcf_operations_prefix             = string<br/>    vcf_operations_cloud_proxy_prefix = string<br/>    vcf_management_services_prefix    = string<br/>    vcf_automation_prefix             = string<br/>    vcf_automation_lb_ips             = list(string)<br/>    vcf_automation_external_lb_ips    = optional(list(string), [])<br/>    sddc_manager_name                 = string<br/>    license_server_name               = string<br/>    license_hub_name                  = string<br/>    ssp_installer_name                = string<br/>    vcf_operations_networks = optional(object({<br/>      platform_prefix  = string<br/>      collector_prefix = string<br/>    }))<br/>  })</pre> | n/a | yes |
 | <a name="input_internet_fqdns"></a> [internet\_fqdns](#input\_internet\_fqdns) | Domain names the VCF fleet may reach over HTTPS for depot and upgrade downloads (MDS-REQD-CFG-030). The design guide lists specific hosts; see https://ports.broadcom.com for the current list. | `list(string)` | <pre>[<br/>  "*.broadcom.com",<br/>  "*.vmware.com",<br/>  "*.broadcom.net"<br/>]</pre> | no |
 | <a name="input_lockdown_action"></a> [lockdown\_action](#input\_lockdown\_action) | Action of every lock-down rule. Start with ALLOW (logged) and switch to DROP once the lock-down logs show no legitimate traffic (MDS-REQD-CFG-035). | `string` | `"ALLOW"` | no |
 | <a name="input_management_domain"></a> [management\_domain](#input\_management\_domain) | The management domain. `name` is its key (e.g. m01). `nsx_manager_cluster` is a key of<br/>`nsx_manager_clusters`. `avi_service_engines` lists the Avi Service Engine management networks<br/>of SEs running in this domain. | <pre>object({<br/>    name                = string<br/>    vcenter_name        = string<br/>    nsx_manager_cluster = string<br/>    hosts               = list(string)<br/>    edges               = optional(list(string), [])<br/>    avi_service_engines = optional(list(string), [])<br/>    ip_storage          = optional(list(string), [])<br/>  })</pre> | n/a | yes |

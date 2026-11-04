@@ -18,6 +18,7 @@ locals {
     ops_cp     = { group = "${var.instance}_OPS_CP", prefix = local.fm.vcf_operations_cloud_proxy_prefix }
     ops_net_cn = { group = "${var.instance}_OPS_NET_CN", prefix = try(local.fm.vcf_operations_networks.collector_prefix, null) }
     vcf_a      = { group = "VCF_A", prefix = local.fm.vcf_automation_prefix }
+    msvc       = { group = "${var.instance}_MSVC", prefix = local.fm.vcf_management_services_prefix }
   }
 
   tagged_vms = merge([
@@ -95,38 +96,6 @@ resource "nsxt_policy_group" "named" {
   }
 }
 
-# Log management and the other Management Services are reached through load balancer VIPs taken from
-# the Management Services IP pool, so the group holds the node VMs and that pool.
-resource "nsxt_policy_group" "msvc" {
-  nsx_id       = "${var.instance}_MSVC"
-  display_name = "${var.instance}_MSVC"
-
-  criteria {
-    condition {
-      member_type = "VirtualMachine"
-      key         = "Name"
-      operator    = "STARTSWITH"
-      value       = local.fm.vcf_management_services_prefix
-    }
-  }
-
-  dynamic "conjunction" {
-    for_each = length(local.fm.vcf_management_services_ip_pool) > 0 ? [1] : []
-    content {
-      operator = "OR"
-    }
-  }
-
-  dynamic "criteria" {
-    for_each = length(local.fm.vcf_management_services_ip_pool) > 0 ? [1] : []
-    content {
-      ipaddress_expression {
-        ip_addresses = local.fm.vcf_management_services_ip_pool
-      }
-    }
-  }
-}
-
 resource "nsxt_policy_group" "vcf_a_lb" {
   for_each = {
     vcf_a_lb     = { group = "VCF_A_LB", ips = local.fm.vcf_automation_lb_ips }
@@ -156,7 +125,6 @@ resource "nsxt_policy_group" "vcf_fm" {
       member_paths = concat(
         [for g in nsxt_policy_group.tagged : g.path],
         [for g in nsxt_policy_group.named : g.path],
-        [nsxt_policy_group.msvc.path],
       )
     }
   }

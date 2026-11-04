@@ -8,7 +8,6 @@ variable "fleet_management" {
     vcf_operations_prefix             = string
     vcf_operations_cloud_proxy_prefix = string
     vcf_management_services_prefix    = string
-    vcf_management_services_ip_pool   = optional(list(string), [])
     vcf_automation_prefix             = string
     vcf_automation_lb_ips             = list(string)
     vcf_automation_external_lb_ips    = optional(list(string), [])
