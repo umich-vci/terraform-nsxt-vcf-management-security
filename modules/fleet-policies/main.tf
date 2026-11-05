@@ -3,10 +3,10 @@ locals {
   fleet = var.fleet_group_paths
   ext   = var.external_group_paths
 
-  domain_paths = [for d in var.domains : d.domain]
-  vc_paths     = distinct([for d in var.domains : d.vc])
-  nsx_and_avi  = distinct(concat([for d in var.domains : d.nsx], [for d in var.domains : d.avi if d.avi != null]))
-  sup_paths    = [for d in var.domains : d.sup if d.sup != null]
+  zone_paths  = [for z in var.zones : z.zone]
+  vc_paths    = distinct(flatten([for z in var.zones : z.vcs]))
+  nsx_and_avi = distinct(flatten([for z in var.zones : z.nsx_and_avi]))
+  sup_paths   = flatten([for z in var.zones : z.sups])
 
   msvc_services = [local.svc["https"], local.svc["salt"], local.svc["syslog_tcp"], local.svc["syslog_udp"], local.svc["syslog_tls"], local.svc["log_api"]]
 }
@@ -18,7 +18,7 @@ resource "nsxt_policy_group" "vcf_fleet" {
 
   criteria {
     path_expression {
-      member_paths = concat([local.fleet.vcf_fm], local.domain_paths)
+      member_paths = concat([local.fleet.vcf_fm], local.zone_paths)
     }
   }
 }

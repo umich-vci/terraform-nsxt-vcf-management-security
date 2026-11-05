@@ -20,6 +20,11 @@ locals {
     syslog_udp  = "Syslog (UDP)"
     nfs         = "NFS (TCP)"
     iscsi       = "VMware-iSCSI-Server"
+    http        = "HTTP"
+    update_mgr  = "Update Manager"
+    vum         = "VMware-UpdateMgr-VUM"
+    vum_update  = "Vmware-UpdateMgr-update"
+    esxi_udp    = "VMware-ESXi5.x-UDP"
   }
 
   # Ports used by the design that have no built-in NSX service. TCP/5480 matches only the built-in
@@ -33,6 +38,15 @@ locals {
     ops_networks = { description = "VCF Operations for Networks", protocol = "TCP", ports = ["1991"] }
     netflow      = { description = "VCF Operations for Networks flows", protocol = "UDP", ports = ["2055"] }
     messaging    = { description = "SSP / License Hub messaging", protocol = "TCP", ports = ["9092"] }
+    vc_db        = { description = "vCenter database (reduced downtime upgrade)", protocol = "TCP", ports = ["5432"] }
+    iofilter     = { description = "vCenter IOFilter VASA provider", protocol = "TCP", ports = ["1443"] }
+    dump_coll    = { description = "ESX Dump Collector", protocol = "TCP", ports = ["6500"] }
+    auto_deploy  = { description = "vSphere Auto Deploy", protocol = "TCP", ports = ["6501-6502"] }
+    auth_proxy   = { description = "vSphere Authentication Proxy", protocol = "TCP", ports = ["7475-7476"] }
+    nsx_rpc      = { description = "NSX transport node messaging", protocol = "TCP", ports = ["1234-1235"] }
+    nsx_amqp     = { description = "NSX transport node messaging (AMQP)", protocol = "TCP", ports = ["5671"] }
+    avi_mgmt     = { description = "Avi controller and Service Engine management", protocol = "TCP", ports = ["8443"] }
+    ops_lcm      = { description = "VCF Operations fleet management to VCF Automation", protocol = "TCP", ports = ["30000-30005"] }
   }
 
   missing_builtin_services = [

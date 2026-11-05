@@ -79,7 +79,7 @@ run "without_optional_components" {
     error_message = "The SSP Installer should be tagged with the vcf_fm scope, not a domain scope."
   }
   assert {
-    condition     = length(nsxt_policy_group.vcf_a_lb["vcf_a_ext_lb"].criteria) == 0
+    condition     = length(nsxt_policy_group.vcf_a_nlb["vcf_a_elb"].criteria) == 0
     error_message = "Without an external load balancer its group is empty."
   }
   assert {
@@ -110,7 +110,7 @@ run "with_optional_components" {
   }
 
   assert {
-    condition     = length(nsxt_policy_group.vcf_a_lb["vcf_a_ext_lb"].criteria) == 1
+    condition     = length(nsxt_policy_group.vcf_a_nlb["vcf_a_elb"].criteria) == 1
     error_message = "The external load balancer group should hold its IPs."
   }
   assert {

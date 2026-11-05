@@ -96,10 +96,10 @@ resource "nsxt_policy_group" "named" {
   }
 }
 
-resource "nsxt_policy_group" "vcf_a_lb" {
+resource "nsxt_policy_group" "vcf_a_nlb" {
   for_each = {
-    vcf_a_lb     = { group = "VCF_A_LB", ips = local.fm.vcf_automation_lb_ips }
-    vcf_a_ext_lb = { group = "VCF_A_EXT_LB", ips = local.fm.vcf_automation_external_lb_ips }
+    vcf_a_nlb = { group = "VCF_A_NLB", ips = local.fm.vcf_automation_lb_ips }
+    vcf_a_elb = { group = "VCF_A_ELB", ips = local.fm.vcf_automation_external_lb_ips }
   }
 
   nsx_id       = each.value.group

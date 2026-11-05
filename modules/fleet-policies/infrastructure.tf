@@ -57,7 +57,7 @@ resource "nsxt_policy_security_policy" "infrastructure" {
   }
 
   rule {
-    display_name = "VCF Fleet Infrastructure Lock Down"
+    display_name = "VCF Fleet Infrastructure Lockdown"
     services = [
       local.svc["dns_udp"], local.svc["dns_tcp"], local.svc["ntp"], local.svc["dhcp_server"],
       local.svc["syslog_tcp"], local.svc["syslog_udp"], local.svc["log_api"],

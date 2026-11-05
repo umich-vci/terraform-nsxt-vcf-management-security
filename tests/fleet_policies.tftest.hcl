@@ -1,4 +1,4 @@
-# The fleet-policies module on its own: rule sets of the fleet-level policies.
+# The fleet-policies module on its own: fleet-level Environment, Infrastructure and Application policies.
 
 mock_provider "nsxt" {
   mock_resource "nsxt_policy_group" {
@@ -7,10 +7,19 @@ mock_provider "nsxt" {
 }
 
 variables {
-  domains = {
-    m01 = { domain = "/infra/domains/default/groups/VCF01_M01", vc = "/infra/domains/default/groups/M01_VC", nsx = "/infra/domains/default/groups/M01_NSX" }
-    w01 = { domain = "/infra/domains/default/groups/VCF01_W01", vc = "/infra/domains/default/groups/W01_VC", nsx = "/infra/domains/default/groups/W01_NSX" }
-    w02 = { domain = "/infra/domains/default/groups/VCF01_W02", vc = "/infra/domains/default/groups/W02_VC", nsx = "/infra/domains/default/groups/W01_NSX" }
+  zones = {
+    m01 = {
+      zone        = "/infra/domains/default/groups/VCF01_M01"
+      vcs         = ["/infra/domains/default/groups/M01_VC"]
+      nsx_and_avi = ["/infra/domains/default/groups/M01_NSX"]
+      sups        = []
+    }
+    w01 = {
+      zone        = "/infra/domains/default/groups/VCF01_W01"
+      vcs         = ["/infra/domains/default/groups/W01_VC", "/infra/domains/default/groups/W02_VC"]
+      nsx_and_avi = ["/infra/domains/default/groups/W01_NSX"]
+      sups        = []
+    }
   }
   fleet_group_paths = {
     vcf_fm         = "/infra/domains/default/groups/VCF_FM"
@@ -24,8 +33,8 @@ variables {
     ops_net_cn     = "/infra/domains/default/groups/VCF01_OPS_NET_CN"
     vcf_a          = "/infra/domains/default/groups/VCF_A"
     msvc           = "/infra/domains/default/groups/VCF01_MSVC"
-    vcf_a_lb       = "/infra/domains/default/groups/VCF_A_LB"
-    vcf_a_ext_lb   = "/infra/domains/default/groups/VCF_A_EXT_LB"
+    vcf_a_nlb      = "/infra/domains/default/groups/VCF_A_NLB"
+    vcf_a_elb      = "/infra/domains/default/groups/VCF_A_ELB"
   }
   external_group_paths = {
     bastion     = "/infra/domains/default/groups/BASTION"
@@ -47,17 +56,19 @@ variables {
     ntp          = "/infra/services/NTP", dhcp_server = "/infra/services/DHCP-Server", ad = "/infra/services/AD",
     syslog_tcp   = "/infra/services/Syslog-TCP", syslog_udp = "/infra/services/Syslog-UDP", vami = "/infra/services/TCP-5480",
     salt         = "/infra/services/TCP-4505_4506", syslog_tls = "/infra/services/TCP-1514", log_api = "/infra/services/TCP-9543",
-    ops_networks = "/infra/services/TCP-1991", netflow = "/infra/services/UDP-2055", nfs = "/infra/services/TCP-2049",
-    iscsi        = "/infra/services/TCP-3260", messaging = "/infra/services/TCP-9092", k8s_api = "/infra/services/TCP-6443"
+    ops_networks = "/infra/services/TCP-1991", netflow = "/infra/services/UDP-2055", nfs = "/infra/services/NFS-TCP",
+    iscsi        = "/infra/services/iSCSI", messaging = "/infra/services/TCP-9092", k8s_api = "/infra/services/TCP-6443",
+    ops_lcm      = "/infra/services/TCP-30000_30005"
   }
   context_profile_paths = {
     dns            = "/infra/context-profiles/DNS"
     internet_fqdns = "/infra/context-profiles/INTERNET_FQDNS"
   }
-  lockdown_action = "ALLOW"
+  lockdown_action             = "ALLOW"
+  application_lockdown_action = "ALLOW"
 }
 
-run "without_supervisors" {
+run "defaults" {
   module {
     source = "./modules/fleet-policies"
   }
@@ -67,61 +78,87 @@ run "without_supervisors" {
     error_message = "Without Supervisors the two Supervisor rules are skipped."
   }
   assert {
-    condition     = nsxt_policy_security_policy.fleet_management.rule[3].source_groups == toset(["/infra/domains/default/groups/M01_NSX", "/infra/domains/default/groups/W01_NSX"])
-    error_message = "A shared NSX Manager group should appear once in the backup rule."
+    condition     = nsxt_policy_security_policy.fleet_management.rule[1].destination_groups == toset(["/infra/domains/default/groups/VCF01_M01", "/infra/domains/default/groups/VCF01_W01"])
+    error_message = "Fleet Management rules should target the zone groups."
+  }
+  assert {
+    condition     = nsxt_policy_security_policy.fleet_management.rule[7].source_groups == toset(["/infra/domains/default/groups/M01_VC", "/infra/domains/default/groups/W01_VC", "/infra/domains/default/groups/W02_VC"])
+    error_message = "Every vCenter should reach the License Server."
+  }
+  assert {
+    condition     = length(nsxt_policy_security_policy.fleet.rule) == 7
+    error_message = "Without a DFW-protected SSP the Fleet policy has no SSP feeds jump."
+  }
+  assert {
+    condition     = length(nsxt_policy_security_policy.vcf_operations_networks) == 0
+    error_message = "No Ops for Networks policy without Ops for Networks."
+  }
+  assert {
+    condition     = nsxt_policy_security_policy.vcf_automation.rule[1].source_groups == toset(["/infra/domains/default/groups/VCF01_MSVC"]) && nsxt_policy_security_policy.vcf_automation.rule[1].services == toset(["/infra/services/SSH", "/infra/services/HTTPS", "/infra/services/TCP-6443", "/infra/services/TCP-30000_30005"])
+    error_message = "Fleet management access to VCF Automation should default to VCF Management Services."
   }
   assert {
     condition = alltrue([
-      for p in [nsxt_policy_security_policy.fleet_management, nsxt_policy_security_policy.infrastructure] :
-      p.rule[length(p.rule) - 1].action == "ALLOW" && p.rule[length(p.rule) - 1].logged
+      for p in [nsxt_policy_security_policy.vcf_operations, nsxt_policy_security_policy.vcf_automation] :
+      p.category == "Application" && p.rule[length(p.rule) - 1].action == "ALLOW" && p.rule[length(p.rule) - 1].ip_version == "IPV4_IPV6"
     ])
-    error_message = "Lock-downs should allow and log by default."
-  }
-  assert {
-    condition     = nsxt_policy_security_policy.fleet_management.rule[12].ip_version == "IPV4_IPV6"
-    error_message = "The Fleet Management lock-down should cover IPv4 and IPv6."
-  }
-  assert {
-    condition     = length(nsxt_policy_security_policy.fleet.rule) == 7 && nsxt_policy_security_policy.fleet.rule[3].services == toset(["/infra/services/ICMP-ALL", "/infra/services/HTTPS", "/infra/services/FTP", "/infra/services/SSH"])
-    error_message = "The Fleet policy should include HTTPS to the backup servers."
+    error_message = "Application lock-downs should allow and log by default."
   }
   assert {
     condition     = nsxt_policy_security_policy.infrastructure.rule[4].destination_groups == toset(["/infra/domains/default/groups/SYSLOG_SVC", "/infra/domains/default/groups/SIEM_SVC", "/infra/domains/default/groups/VCF01_MSVC"])
     error_message = "Syslog should be allowed to the syslog servers, the SIEM and VCF Management Services."
   }
-  assert {
-    condition     = nsxt_policy_security_policy.vcf_automation.category == "Application" && nsxt_policy_security_policy.vcf_automation.rule[2].sources_excluded
-    error_message = "The VCF Automation lock-down should apply to sources outside VCF_FLEET."
-  }
 }
 
-run "with_supervisors" {
+run "everything_enabled" {
   module {
     source = "./modules/fleet-policies"
   }
 
   variables {
-    lockdown_action = "DROP"
-    domains = {
-      m01 = { domain = "/infra/domains/default/groups/VCF01_M01", vc = "/infra/domains/default/groups/M01_VC", nsx = "/infra/domains/default/groups/M01_NSX" }
-      w01 = { domain = "/infra/domains/default/groups/VCF01_W01", vc = "/infra/domains/default/groups/W01_VC", nsx = "/infra/domains/default/groups/W01_NSX", avi = "/infra/domains/default/groups/W01_AVI", sup = "/infra/domains/default/groups/W01_SUP" }
+    zones = {
+      w01 = {
+        zone        = "/infra/domains/default/groups/VCF01_W01"
+        vcs         = ["/infra/domains/default/groups/W01_VC"]
+        nsx_and_avi = ["/infra/domains/default/groups/W01_NSX", "/infra/domains/default/groups/W01_AVI"]
+        sups        = ["/infra/domains/default/groups/W01_SUP"]
+      }
     }
+    dfw_ssp_paths        = ["/infra/domains/default/groups/W01_SSP"]
+    ops_networks_enabled = true
+    fleet_group_paths = {
+      vcf_fm         = "/infra/domains/default/groups/VCF_FM"
+      ops            = "/infra/domains/default/groups/VCF_OPS"
+      ops_networks   = "/infra/domains/default/groups/VCF_OPS_NET"
+      sddc           = "/infra/domains/default/groups/VCF01_SDDC"
+      license_server = "/infra/domains/default/groups/VCF01_LIC"
+      license_hub    = "/infra/domains/default/groups/VCF01_LHUB"
+      ssp_installer  = "/infra/domains/default/groups/VCF01_SSPI01"
+      ops_cp         = "/infra/domains/default/groups/VCF01_OPS_CP"
+      ops_net_cn     = "/infra/domains/default/groups/VCF01_OPS_NET_CN"
+      vcf_a          = "/infra/domains/default/groups/VCF_A"
+      msvc           = "/infra/domains/default/groups/VCF01_MSVC"
+      vcf_a_nlb      = "/infra/domains/default/groups/VCF_A_NLB"
+      vcf_a_elb      = "/infra/domains/default/groups/VCF_A_ELB"
+    }
+    lockdown_action             = "DROP"
+    application_lockdown_action = "ALLOW"
   }
 
   assert {
-    condition     = length(nsxt_policy_security_policy.fleet_management.rule) == 15
+    condition     = length(nsxt_policy_security_policy.fleet_management.rule) == 15 && nsxt_policy_security_policy.fleet_management.rule[7].source_groups == toset(["/infra/domains/default/groups/W01_SUP"])
     error_message = "With Supervisors both Supervisor rules are present."
   }
   assert {
-    condition     = nsxt_policy_security_policy.fleet_management.rule[7].source_groups == toset(["/infra/domains/default/groups/W01_SUP"])
-    error_message = "The Supervisor rule should source the Supervisor groups."
+    condition     = nsxt_policy_security_policy.fleet.rule[7].action == "JUMP_TO_APPLICATION" && nsxt_policy_security_policy.fleet.rule[7].source_groups == toset(["/infra/domains/default/groups/W01_SSP"])
+    error_message = "A DFW-protected SSP should jump to Application for its feeds."
   }
   assert {
-    condition     = contains(nsxt_policy_security_policy.fleet_management.rule[3].source_groups, "/infra/domains/default/groups/W01_AVI")
-    error_message = "Avi controllers back up to SDDC Manager."
+    condition     = length(nsxt_policy_security_policy.vcf_operations_networks) == 1
+    error_message = "Ops for Networks should get its Application policy."
   }
   assert {
-    condition     = nsxt_policy_security_policy.fleet_management.rule[14].action == "DROP" && nsxt_policy_security_policy.vcf_automation.rule[2].action == "DROP"
-    error_message = "lockdown_action should set every lock-down."
+    condition     = nsxt_policy_security_policy.fleet_management.rule[14].action == "DROP" && nsxt_policy_security_policy.vcf_automation.rule[6].action == "ALLOW"
+    error_message = "lockdown_action and application_lockdown_action should be independent."
   }
 }

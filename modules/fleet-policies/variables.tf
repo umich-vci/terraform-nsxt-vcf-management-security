@@ -1,12 +1,23 @@
-variable "domains" {
+variable "zones" {
   type = map(object({
-    domain = string
-    vc     = string
-    nsx    = string
-    avi    = optional(string)
-    sup    = optional(string)
+    zone        = string
+    vcs         = list(string)
+    nsx_and_avi = list(string)
+    sups        = list(string)
   }))
-  description = "Group paths of every domain (management and workload), from the domain module."
+  description = "Group paths of the management domain zone and every workload domain zone, from the zone module."
+}
+
+variable "dfw_ssp_paths" {
+  type        = list(string)
+  default     = []
+  description = "SSP node groups of SSP instances running in the management domain (DFW-protected)."
+}
+
+variable "ops_networks_enabled" {
+  type        = bool
+  default     = false
+  description = "Whether VCF Operations for Networks is deployed."
 }
 
 variable "fleet_group_paths" {
@@ -22,8 +33,8 @@ variable "fleet_group_paths" {
     ops_net_cn     = string
     vcf_a          = string
     msvc           = string
-    vcf_a_lb       = string
-    vcf_a_ext_lb   = string
+    vcf_a_nlb      = string
+    vcf_a_elb      = string
   })
   description = "Policy paths of the fleet management groups, from the fleet-management module."
 }
@@ -56,6 +67,11 @@ variable "context_profile_paths" {
     internet_fqdns = string
   })
   description = "Policy paths of the context profiles, from the common module."
+}
+
+variable "application_lockdown_action" {
+  type        = string
+  description = "Action of the Application lock-down rules: ALLOW or DROP. Both log."
 }
 
 variable "lockdown_action" {

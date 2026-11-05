@@ -1,6 +1,6 @@
 resource "nsxt_policy_security_policy" "fleet" {
-  display_name    = "VCF Fleet Environment"
-  description     = "VCF Fleet Environment"
+  display_name    = "VCF Fleet Policy"
+  description     = "VCF Fleet Policy"
   category        = "Environment"
   locked          = false
   stateful        = true
@@ -77,11 +77,25 @@ resource "nsxt_policy_security_policy" "fleet" {
     direction     = "OUT"
     logged        = false
   }
+
+  # SSP threat feeds and SIEM have an Any destination, so they jump to the SSP Application policy
+  # instead of hitting the zone lock-down.
+  dynamic "rule" {
+    for_each = length(var.dfw_ssp_paths) > 0 ? [1] : []
+    content {
+      display_name  = "SSP Feeds"
+      source_groups = var.dfw_ssp_paths
+      services      = [local.svc["https"]]
+      action        = "JUMP_TO_APPLICATION"
+      direction     = "OUT"
+      logged        = false
+    }
+  }
 }
 
 resource "nsxt_policy_security_policy" "fleet_management" {
-  display_name    = "VCF Fleet Management Environment"
-  description     = "VCF Fleet Management Environment"
+  display_name    = "VCF Fleet Management Policy"
+  description     = "VCF Fleet Management Policy"
   category        = "Environment"
   locked          = false
   stateful        = true
@@ -100,7 +114,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
   rule {
     display_name       = "VCF Fleet Management to VCF Domains"
     source_groups      = [local.fleet.vcf_fm]
-    destination_groups = local.domain_paths
+    destination_groups = local.zone_paths
     services           = [local.svc["https"]]
     action             = "ALLOW"
     direction          = "OUT"
@@ -110,7 +124,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
   rule {
     display_name       = "SDDC Manager to VCF Domains"
     source_groups      = [local.fleet.sddc]
-    destination_groups = local.domain_paths
+    destination_groups = local.zone_paths
     services           = [local.svc["ssh"], local.svc["vami"], local.svc["icmp_echo"]]
     action             = "ALLOW"
     direction          = "OUT"
@@ -130,7 +144,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
   rule {
     display_name       = "VCF Operations Cloud Proxy to VCF Domains"
     source_groups      = [local.fleet.ops_cp]
-    destination_groups = concat([local.fleet.vcf_fm], local.domain_paths)
+    destination_groups = concat([local.fleet.vcf_fm], local.zone_paths)
     services           = [local.svc["icmp_echo"]]
     action             = "ALLOW"
     direction          = "OUT"
@@ -139,7 +153,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
 
   rule {
     display_name       = "VCF Domains to VCF Management Services"
-    source_groups      = local.domain_paths
+    source_groups      = local.zone_paths
     destination_groups = [local.fleet.msvc]
     services           = local.msvc_services
     action             = "ALLOW"
@@ -149,7 +163,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
 
   rule {
     display_name       = "VCF Domains to VCF Operations for Networks"
-    source_groups      = local.domain_paths
+    source_groups      = local.zone_paths
     destination_groups = [local.fleet.ops_net_cn]
     services           = [local.svc["https"], local.svc["ops_networks"], local.svc["netflow"]]
     action             = "ALLOW"
@@ -197,7 +211,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
   rule {
     display_name       = "vDefend License Hub to VCF Domains"
     source_groups      = [local.fleet.license_hub]
-    destination_groups = local.domain_paths
+    destination_groups = local.zone_paths
     services           = [local.svc["https"], local.svc["nfs"], local.svc["iscsi"]]
     action             = "ALLOW"
     direction          = "OUT"
@@ -206,7 +220,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
 
   rule {
     display_name       = "VCF Domains to vDefend License Hub"
-    source_groups      = local.domain_paths
+    source_groups      = local.zone_paths
     destination_groups = [local.fleet.license_hub]
     services           = [local.svc["https"], local.svc["messaging"]]
     action             = "ALLOW"
@@ -217,7 +231,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
   rule {
     display_name       = "SSP Installer to VCF Domains"
     source_groups      = [local.fleet.ssp_installer]
-    destination_groups = local.domain_paths
+    destination_groups = local.zone_paths
     services           = [local.svc["https"], local.svc["k8s_api"]]
     action             = "ALLOW"
     direction          = "OUT"
@@ -226,7 +240,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
 
   rule {
     display_name       = "VCF Domains to SSP Installer Registry"
-    source_groups      = local.domain_paths
+    source_groups      = local.zone_paths
     destination_groups = [local.fleet.ssp_installer]
     services           = [local.svc["https"]]
     action             = "ALLOW"
@@ -235,7 +249,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
   }
 
   rule {
-    display_name = "VCF Fleet Management Lock Down"
+    display_name = "VCF Fleet Management Lockdown"
     action       = var.lockdown_action
     ip_version   = "IPV4_IPV6"
     logged       = true

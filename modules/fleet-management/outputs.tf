@@ -12,7 +12,7 @@ output "group_paths" {
     ops_net_cn     = nsxt_policy_group.named["ops_net_cn"].path
     vcf_a          = nsxt_policy_group.named["vcf_a"].path
     msvc           = nsxt_policy_group.named["msvc"].path
-    vcf_a_lb       = nsxt_policy_group.vcf_a_lb["vcf_a_lb"].path
-    vcf_a_ext_lb   = nsxt_policy_group.vcf_a_lb["vcf_a_ext_lb"].path
+    vcf_a_nlb      = nsxt_policy_group.vcf_a_nlb["vcf_a_nlb"].path
+    vcf_a_elb      = nsxt_policy_group.vcf_a_nlb["vcf_a_elb"].path
   }
 }

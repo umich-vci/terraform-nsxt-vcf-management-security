@@ -46,6 +46,12 @@ variable "workload_domains" {
   description = "See the module's workload_domains input."
 }
 
+variable "application_lockdown_action" {
+  type        = string
+  default     = "ALLOW"
+  description = "See the module's application_lockdown_action input."
+}
+
 variable "lockdown_action" {
   type        = string
   default     = "ALLOW"

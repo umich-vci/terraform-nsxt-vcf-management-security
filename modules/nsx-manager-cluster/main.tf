@@ -1,20 +1,27 @@
 locals {
-  prefix = upper(var.name)
+  prefix  = upper(var.name)
+  label   = coalesce(var.display_name, local.prefix)
+  ssp_dfw = var.ssp != null && var.ssp_in_management_domain
 
-  # Grouped by VM name (MDS-REQD-CFG-003/006) so that the same groups can be nested into every
-  # domain that shares this NSX Manager. VM tags would conflict between those domains.
+  # Grouped by VM name (MDS-REQD-CFG-003/006). These VMs run in the management domain.
   named = merge(
-    { nsx = { group = "${local.prefix}_NSX", prefix = var.vm_name_prefix } },
-    var.avi == null ? {} : { avi = { group = "${local.prefix}_AVI", prefix = var.avi.controller_prefix } },
-    var.ssp == null ? {} : { ssp = { group = "${local.prefix}_SSP", prefix = var.ssp.node_prefix } },
+    { nsx = { id = "${local.prefix}_NSX", name = "${local.label}_NSX", prefix = var.vm_name_prefix } },
+    var.avi == null ? {} : { avi = { id = "${local.prefix}_AVI", name = "${local.label}_AVI", prefix = var.avi.controller_prefix } },
+    local.ssp_dfw ? { ssp = { id = "${local.prefix}_SSP", name = "${local.label}_SSP", prefix = var.ssp.node_prefix } } : {},
+  )
+
+  # IP groups, tagged with the cluster key as scope, which places them in the zone of the domains using it.
+  ip_groups = merge(
+    var.ssp == null ? {} : { ssp_svc = { id = "${local.prefix}_SSP_SVC", name = "${local.label}_SSP_SVC", ips = var.ssp.service_pool } },
+    var.ssp != null && !local.ssp_dfw ? { ssp = { id = "${local.prefix}_SSP", name = "${local.label}_SSP", ips = var.ssp.node_pool } } : {},
   )
 }
 
 resource "nsxt_policy_group" "named" {
   for_each = local.named
 
-  nsx_id       = each.value.group
-  display_name = each.value.group
+  nsx_id       = each.value.id
+  display_name = each.value.name
 
   criteria {
     condition {
@@ -26,53 +33,21 @@ resource "nsxt_policy_group" "named" {
   }
 }
 
-# SSP Service IP Pool. The group tag places it in the nested group of the domain hosting the SSP.
-resource "nsxt_policy_group" "ssp_svc" {
-  count = var.ssp == null ? 0 : 1
+resource "nsxt_policy_group" "ip" {
+  for_each = local.ip_groups
 
-  nsx_id       = "${local.prefix}_SSP_SVC"
-  display_name = "${local.prefix}_SSP_SVC"
+  nsx_id       = each.value.id
+  display_name = each.value.name
   group_type   = "IPAddress"
 
   tag {
-    scope = var.ssp_domain
-    tag   = "ssp_svc"
+    scope = var.name
+    tag   = each.key
   }
 
   criteria {
     ipaddress_expression {
-      ip_addresses = var.ssp.service_pool
-    }
-  }
-
-  lifecycle {
-    precondition {
-      condition     = var.ssp_domain != null
-      error_message = "ssp_domain must be set when an SSP instance is configured."
-    }
-  }
-}
-
-# Edge nodes shared by the domains using this NSX Manager. One group tag per domain places the
-# group in each of their nested groups.
-resource "nsxt_policy_group" "edge" {
-  count = length(var.edges) > 0 ? 1 : 0
-
-  nsx_id       = "${local.prefix}_NSX_EDGE"
-  display_name = "${local.prefix}_NSX_EDGE"
-  group_type   = "IPAddress"
-
-  dynamic "tag" {
-    for_each = toset(var.domains)
-    content {
-      scope = tag.value
-      tag   = "nsx_edge"
-    }
-  }
-
-  criteria {
-    ipaddress_expression {
-      ip_addresses = var.edges
+      ip_addresses = each.value.ips
     }
   }
 }

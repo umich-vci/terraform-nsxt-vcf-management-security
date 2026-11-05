@@ -30,4 +30,6 @@ module "vcf_management_security" {
   management_domain    = var.management_domain
   workload_domains     = var.workload_domains
   lockdown_action      = var.lockdown_action
+
+  application_lockdown_action = var.application_lockdown_action
 }

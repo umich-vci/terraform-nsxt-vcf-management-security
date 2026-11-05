@@ -21,6 +21,11 @@ mock_provider "nsxt" {
         "Syslog (UDP)"                  = "/infra/services/Syslog-UDP"
         "NFS (TCP)"                     = "/infra/services/NFS-TCP"
         "VMware-iSCSI-Server"           = "/infra/services/iSCSI"
+        "HTTP"                          = "/infra/services/HTTP"
+        "Update Manager"                = "/infra/services/Update-Manager"
+        "VMware-UpdateMgr-VUM"          = "/infra/services/VUM"
+        "Vmware-UpdateMgr-update"       = "/infra/services/VUM-update"
+        "VMware-ESXi5.x-UDP"            = "/infra/services/ESXi-UDP"
       }
     }
   }

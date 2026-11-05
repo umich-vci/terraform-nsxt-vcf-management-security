@@ -1,6 +1,12 @@
 variable "name" {
   type        = string
-  description = "NSX Manager cluster key; its upper-case form prefixes the group names (e.g. m01 gives M01_NSX)."
+  description = "NSX Manager cluster key. Its upper-case form prefixes the group IDs (e.g. m01 gives M01_NSX), and it is the tag scope that places IP groups in the zone of the domains using it."
+}
+
+variable "display_name" {
+  type        = string
+  default     = null
+  description = "Upper-case label used in group display names (e.g. the domains using this NSX Manager). Defaults to the upper-case key. Group IDs always use the key, so the label can change in place."
 }
 
 variable "vm_name_prefix" {
@@ -18,27 +24,16 @@ variable "avi" {
 
 variable "ssp" {
   type = object({
-    node_prefix  = string
+    node_prefix  = optional(string)
+    node_pool    = optional(list(string), [])
     service_pool = list(string)
   })
   default     = null
   description = "Security Services Platform instance onboarded to this NSX Manager. Null if SSP is not deployed."
 }
 
-variable "edges" {
-  type        = list(string)
-  default     = []
-  description = "Management IP addresses, ranges or CIDRs of NSX Edge nodes shared by every domain using this NSX Manager."
-}
-
-variable "domains" {
-  type        = list(string)
-  default     = []
-  description = "Keys of the domains using this NSX Manager cluster."
-}
-
-variable "ssp_domain" {
-  type        = string
-  default     = null
-  description = "Domain whose nested group the SSP instance belongs to (the domain hosting the SSP VMs)."
+variable "ssp_in_management_domain" {
+  type        = bool
+  default     = true
+  description = "Whether the SSP VMs run in the management domain, where they are grouped by name and protected by the DFW. Otherwise they are grouped by their Node IP Pool."
 }

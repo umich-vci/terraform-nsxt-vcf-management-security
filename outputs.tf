@@ -14,14 +14,25 @@ output "nsx_manager_cluster_group_paths" {
 }
 
 output "domain_group_paths" {
-  description = "Policy paths of each domain's groups, with the groups statically included in its nested group."
-  value       = { for k, d in module.domain : k => merge(d.group_paths, { member_paths = d.member_paths }) }
+  description = "Policy paths of each domain's groups."
+  value       = { for k, d in module.domain : k => d.group_paths }
+}
+
+output "zone_group_paths" {
+  description = "The management domain zone and each workload domain zone (keyed by NSX Manager cluster): the zone group's path and display name, and the groups statically included in it."
+  value = {
+    for k, z in module.zone : k => {
+      zone         = z.group_paths.zone
+      display_name = "${local.instance}_${local.zone_labels[k]}"
+      member_paths = z.member_paths
+    }
+  }
 }
 
 output "policy_paths" {
   description = "Policy paths of all security policies."
   value = merge(
     module.fleet_policies.policy_paths,
-    { for k, d in module.domain : "domain_${k}" => d.policy_path },
+    merge([for k, z in module.zone : { for p, path in z.policy_paths : "zone_${k}_${p}" => path }]...),
   )
 }
