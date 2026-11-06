@@ -102,7 +102,7 @@ run "custom_services" {
     error_message = "TCP/5671 and TCP/3512 should be generic custom services."
   }
   assert {
-    condition     = !contains(keys(nsxt_policy_service.custom), "TCP-5432")
-    error_message = "The TCP/5432 (vc_db) service should be gone."
+    condition     = nsxt_policy_service.custom["TCP-5432"].description == "vCenter database (reduced downtime upgrade)"
+    error_message = "TCP/5432 (formerly vc_db) is kept for one release so its removal is ordered after the policy updates."
   }
 }

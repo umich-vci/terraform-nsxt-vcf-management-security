@@ -20,6 +20,11 @@ locals {
     "TCP-8443"        = { description = "Avi controller and Service Engine management", protocol = "TCP", ports = ["8443"] }
     "TCP-30000_30005" = { description = "VCF Operations fleet management to VCF Automation", protocol = "TCP", ports = ["30000-30005"] }
     "TCP-3512"        = { description = "TCP-3512", protocol = "TCP", ports = ["3512"] }
+
+    # Not used by any rule. Kept for one release so that state records create_before_destroy for it:
+    # OpenTofu orders a removed instance's destroy by the flag in state, and without it the destroy
+    # runs before the policies drop their references. Remove in the next release.
+    "TCP-5432" = { description = "vCenter database (reduced downtime upgrade)", protocol = "TCP", ports = ["5432"] }
   }
 }
 
@@ -30,6 +35,10 @@ moved {
 }
 
 # Custom services were keyed by logical name before they were keyed by display name.
+moved {
+  from = nsxt_policy_service.custom["vc_db"]
+  to   = nsxt_policy_service.custom["TCP-5432"]
+}
 
 moved {
   from = nsxt_policy_service.custom["vami"]
