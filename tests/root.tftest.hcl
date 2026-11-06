@@ -261,6 +261,68 @@ run "long_zone_display_name_falls_back_to_key" {
   }
 }
 
+run "hardware_support_manager_vcenters" {
+  variables {
+    nsx_manager_clusters = {
+      m01 = { vm_name_prefix = "m01-nsx01" }
+      w01 = { vm_name_prefix = "w01-nsx01" }
+      w05 = { vm_name_prefix = "w05-nsx01" }
+    }
+    workload_domains = {
+      w01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"] }
+      w05 = { vcenter_name = "w05-vc01", nsx_manager_cluster = "w05", hosts = ["203.0.113.16/28"] }
+    }
+    hardware_support_managers = {
+      oneview = { vm_name = "m01-hsm01", domains = ["m01", "w01"] }
+      ome     = { ips = ["198.51.100.70"], domains = ["w05"], to_hsm = ["/infra/services/SNMP"], from_hsm = ["/infra/services/HTTPS"] }
+    }
+  }
+
+  assert {
+    condition     = output.hardware_support_managers["oneview"].vcenter_groups == ["/infra/domains/default/groups/MOCK", "/infra/domains/default/groups/W01_VC"]
+    error_message = "An HSM should be allowed for the vCenters of its domains only: ${jsonencode(output.hardware_support_managers)}"
+  }
+  assert {
+    condition = (
+      jsonencode(output.hardware_support_managers["oneview"].to_services) == jsonencode(["/infra/services/HTTPS"]) &&
+      length(output.hardware_support_managers["oneview"].from_services) == 0 &&
+      jsonencode(output.hardware_support_managers["ome"].to_services) == jsonencode(["/infra/services/SNMP"]) &&
+      jsonencode(output.hardware_support_managers["ome"].from_services) == jsonencode(["/infra/services/HTTPS"])
+    )
+    error_message = "to_hsm should default to the built-in HTTPS and from_hsm to none; given lists pass through."
+  }
+}
+
+run "rejects_hsm_unknown_domain" {
+  command = plan
+  variables {
+    hardware_support_managers = {
+      oneview = { vm_name = "m01-hsm01", domains = ["w09"] }
+    }
+  }
+  expect_failures = [var.hardware_support_managers]
+}
+
+run "rejects_hsm_without_vm_or_ips" {
+  command = plan
+  variables {
+    hardware_support_managers = {
+      oneview = { domains = ["m01"] }
+    }
+  }
+  expect_failures = [var.hardware_support_managers]
+}
+
+run "rejects_hsm_service_name_instead_of_path" {
+  command = plan
+  variables {
+    hardware_support_managers = {
+      oneview = { vm_name = "m01-hsm01", domains = ["m01"], to_hsm = ["HTTPS"] }
+    }
+  }
+  expect_failures = [var.hardware_support_managers]
+}
+
 run "rejects_long_key" {
   command = plan
   variables {

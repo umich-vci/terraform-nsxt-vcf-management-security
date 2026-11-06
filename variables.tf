@@ -210,6 +210,54 @@ variable "workload_domains" {
   }
 }
 
+variable "hardware_support_managers" {
+  type = map(object({
+    vm_name  = optional(string)
+    ips      = optional(list(string), [])
+    domains  = list(string)
+    to_hsm   = optional(list(string))
+    from_hsm = optional(list(string), [])
+  }))
+  default     = {}
+  description = <<-EOT
+    vSphere Lifecycle Manager Hardware Support Managers (e.g. HPE OneView, Dell OpenManage) running as
+    VMs or appliances, by key. Not part of the design guide. `vm_name` is the exact VM name and `ips`
+    its IP addresses, ranges or CIDRs; give either or both. `vm_name` only matches VMs in the
+    inventory of the NSX Manager this module runs against (the management domain's); use `ips` for
+    an HSM anywhere else. HSMs join VCF_FLEET, and the VCF Fleet Policy allows them to and from
+    their vCenters. `domains` lists the domain keys whose vCenter uses the HSM. `to_hsm` and
+    `from_hsm` are NSX service paths (e.g. "/infra/services/HTTPS"): what the vCenters open to the
+    HSM (default: the built-in HTTPS, as ports.broadcom.com lists) and what the HSM opens to the
+    vCenters (default: none). The ports depend on the vendor; create any custom services yourself.
+  EOT
+
+  validation {
+    condition = alltrue([
+      for k, h in var.hardware_support_managers :
+      can(regex("^[a-z0-9][a-z0-9_-]{0,31}$", k)) && length(h.domains) > 0 && (length(h.vm_name == null ? "" : h.vm_name) > 0 || length(h.ips) > 0)
+    ])
+    error_message = "Hardware Support Manager keys must be at most 32 lower-case letters, digits, '-' or '_'; each needs domains and a vm_name or ips."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for h in var.hardware_support_managers : [
+        for p in concat(coalesce(h.to_hsm, []), h.from_hsm) : can(regex("^/.*/services/[^/]+$", p))
+      ]
+    ]))
+    error_message = "hardware_support_managers[*].to_hsm and from_hsm must be NSX service paths, such as \"/infra/services/HTTPS\"."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for h in var.hardware_support_managers : [
+        for d in h.domains : d == var.management_domain.name || contains(keys(var.workload_domains), d)
+      ]
+    ]))
+    error_message = "hardware_support_managers[*].domains must be the management domain name or workload domain keys."
+  }
+}
+
 variable "internet_fqdns" {
   type        = list(string)
   default     = ["*.broadcom.com", "*.vmware.com", "*.broadcom.net"]

@@ -80,6 +80,18 @@ workload_domains = {
   }
 }
 
+# vSphere Lifecycle Manager Hardware Support Managers (not part of the design guide). vm_name matches
+# VMs on this NSX Manager; use ips for an HSM anywhere else. to_hsm and from_hsm are NSX service
+# paths and depend on the vendor; to_hsm defaults to the built-in HTTPS and from_hsm to none.
+hardware_support_managers = {
+  oneview = {
+    vm_name  = "m01-hsm01"
+    domains  = ["m01", "w01"]
+    to_hsm   = ["/infra/services/HTTPS"]
+    from_hsm = ["/infra/services/HTTPS"]
+  }
+}
+
 # Start with ALLOW (logged), review the lock-down logs, then switch to DROP: the zone and
 # Infrastructure lock-downs first, the Application lock-downs later.
 lockdown_action             = "ALLOW"

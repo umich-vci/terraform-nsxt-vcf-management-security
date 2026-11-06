@@ -11,14 +11,15 @@ locals {
   msvc_services = [local.svc["https"], local.svc["salt"], local.svc["syslog_tcp"], local.svc["syslog_udp"], local.svc["syslog_tls"], local.svc["log_api"]]
 }
 
-# All VCF fleet components (MDS-REQD-CFG-014).
+# All VCF fleet components (MDS-REQD-CFG-014). Hardware Support Managers are added so that the
+# Infrastructure and Fleet rules also apply to them; that is not part of the design guide.
 resource "nsxt_policy_group" "vcf_fleet" {
   nsx_id       = "VCF_FLEET"
   display_name = "VCF_FLEET"
 
   criteria {
     path_expression {
-      member_paths = concat([local.fleet.vcf_fm], local.zone_paths)
+      member_paths = concat([local.fleet.vcf_fm], local.zone_paths, [for h in var.hardware_support_managers : h.group])
     }
   }
 }

@@ -69,6 +69,17 @@ variable "context_profile_paths" {
   description = "Policy paths of the context profiles, from the common module."
 }
 
+variable "hardware_support_managers" {
+  type = map(object({
+    group         = string
+    vcs           = list(string)
+    to_services   = list(string)
+    from_services = list(string)
+  }))
+  default     = {}
+  description = "Hardware Support Managers: the HSM group, the vCenter groups that use it, and the services each side opens to the other."
+}
+
 variable "application_lockdown_action" {
   type        = string
   description = "Action of the Application lock-down rules: ALLOW or DROP. Both log."

@@ -39,6 +39,7 @@ locals {
       sort([for k, w in var.workload_domains : k if w.nsx_manager_cluster == c]),
     )))
   }
+
   zone_labels = {
     for c, cl in var.nsx_manager_clusters : c => (
       cl.display_name != null ? upper(cl.display_name) :
@@ -50,8 +51,9 @@ locals {
 module "common" {
   source = "./modules/common"
 
-  external_services = var.external_services
-  internet_fqdns    = var.internet_fqdns
+  external_services         = var.external_services
+  internet_fqdns            = var.internet_fqdns
+  hardware_support_managers = { for k, h in var.hardware_support_managers : k => { vm_name = h.vm_name, ips = h.ips } }
 }
 
 module "fleet_management" {
@@ -104,18 +106,28 @@ module "zone" {
   application_sequence_number = 10 + 100 * index(local.zone_order, each.key)
   lockdown_action             = var.lockdown_action
   application_lockdown_action = var.application_lockdown_action
+
 }
 
 module "fleet_policies" {
   source = "./modules/fleet-policies"
 
-  zones                       = { for k, z in module.zone : k => z.group_paths }
-  dfw_ssp_paths               = [for c in module.nsx_manager_cluster : c.group_paths.ssp if c.ssp_dfw]
-  ops_networks_enabled        = var.fleet_management.vcf_operations_networks != null
-  fleet_group_paths           = module.fleet_management.group_paths
-  external_group_paths        = module.common.group_paths
-  service_paths               = module.common.service_paths
-  context_profile_paths       = module.common.context_profile_paths
+  zones                 = { for k, z in module.zone : k => z.group_paths }
+  dfw_ssp_paths         = [for c in module.nsx_manager_cluster : c.group_paths.ssp if c.ssp_dfw]
+  ops_networks_enabled  = var.fleet_management.vcf_operations_networks != null
+  fleet_group_paths     = module.fleet_management.group_paths
+  external_group_paths  = module.common.group_paths
+  service_paths         = module.common.service_paths
+  context_profile_paths = module.common.context_profile_paths
+
+  hardware_support_managers = {
+    for k, h in var.hardware_support_managers : k => {
+      group         = module.common.hsm_group_paths[k]
+      vcs           = [for d in distinct(h.domains) : module.domain[d].group_paths.vc]
+      to_services   = h.to_hsm == null ? [module.common.service_paths["https"]] : h.to_hsm
+      from_services = h.from_hsm
+    }
+  }
   lockdown_action             = var.lockdown_action
   application_lockdown_action = var.application_lockdown_action
 }

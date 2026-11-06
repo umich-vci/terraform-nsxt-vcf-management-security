@@ -23,3 +23,8 @@ output "group_paths" {
   description = "Policy paths of the infrastructure and external service groups."
   value       = { for k, g in nsxt_policy_group.external : k => g.path }
 }
+
+output "hsm_group_paths" {
+  description = "Policy paths of the Hardware Support Manager groups, by key."
+  value       = { for k, g in nsxt_policy_group.hsm : k => g.path }
+}

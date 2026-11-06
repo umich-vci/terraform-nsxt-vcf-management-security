@@ -19,3 +19,12 @@ variable "internet_fqdns" {
   type        = list(string)
   description = "Domain names the VCF fleet may reach over HTTPS for depot and upgrade traffic (MDS-REQD-CFG-030)."
 }
+
+variable "hardware_support_managers" {
+  type = map(object({
+    vm_name = optional(string)
+    ips     = optional(list(string), [])
+  }))
+  default     = {}
+  description = "Hardware Support Managers by key: their exact VM name and/or IP addresses."
+}

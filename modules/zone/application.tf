@@ -42,15 +42,6 @@ resource "nsxt_policy_security_policy" "vcenter" {
   }
 
   rule {
-    display_name       = "${local.label} Appliance Management and Upgrade"
-    source_groups      = [local.zone]
-    destination_groups = [local.zone]
-    services           = [local.svc["vami"], local.svc["vc_db"]]
-    action             = "ALLOW"
-    logged             = false
-  }
-
-  rule {
     display_name       = "vCenter to NSX Manager"
     source_groups      = [each.value.vc]
     destination_groups = [local.c.nsx]

@@ -55,6 +55,40 @@ module "vcf_management_security" {
 
 See [examples/basic](examples/basic) for a complete configuration with every option.
 
+### Hardware Support Managers
+
+vSphere Lifecycle Manager Hardware Support Managers (HPE OneView, Dell OpenManage, …) can be allowed
+for the vCenters that use them. Identify each one by `vm_name`, `ips` or both. `vm_name` only matches
+VMs this NSX Manager knows (the management domain, or a workload domain sharing its NSX Manager); for
+an HSM in another workload domain, a physical appliance or anything outside VCF, give `ips`. The
+ports depend on the vendor:
+
+```hcl
+  hardware_support_managers = {
+    oneview = {
+      vm_name  = "m01-hsm01"         # exact VM name, and/or
+      ips      = ["198.51.100.70"]   # IP addresses, ranges or CIDRs
+      domains  = ["m01", "w01"]      # domains whose vCenter uses it
+      to_hsm   = ["/infra/services/HTTPS"]   # vCenter → HSM, NSX service paths (default: HTTPS)
+      from_hsm = ["/infra/services/HTTPS"]   # HSM → vCenter (default: none)
+    }
+  }
+```
+
+`HSM_<KEY>` joins `VCF_FLEET`, and the VCF Fleet Policy gets rules between it and those domains'
+`<D>_VC` groups, using the NSX services you list. The module creates no services for HSMs: for a
+vendor port with no built-in, create an `nsxt_policy_service` in your configuration and pass its
+path.
+- **Directions:** the rules are stateful, so `from_hsm` is only needed when the HSM opens connections
+  to vCenter.
+- **Where they apply:** the rules are enforced at the vCenters and, for an HSM VM on this DFW, at
+  the HSM. They come before the zone policies, so they still match if the HSM's IP falls inside a
+  hosts group. An HSM given only by `ips` gets no rules on its own side.
+- **Other HSM traffic:** as a `VCF_FLEET` member, an HSM VM also gets the Infrastructure (DNS, NTP,
+  AD, syslog) and Fleet (bastion, tools, backup, mail, depot) rules. Its traffic to the hardware it
+  manages (iLO, iDRAC, OneView appliances, …) still falls to the NSX default rule. Allow it before
+  you tighten that rule.
+
 ## Model
 
 **Zones.** As in the guide's Segmentation Planning diagram and Environment policies:
@@ -62,8 +96,9 @@ See [examples/basic](examples/basic) for a complete configuration with every opt
 - the **Management domain Zone** (`VCF01_<MGMT>`);
 - the **Workload Domain Zones** (`VCF01_W(...)`).
 
-The VCF Fleet policy spans all of them through `VCF_FLEET`. Infrastructure and external services
-(the diagram's InfraSvc and External zones) are IP groups.
+The VCF Fleet policy spans all of them through `VCF_FLEET`, which also holds any
+[Hardware Support Managers](#hardware-support-managers) (not in the guide). Infrastructure and
+external services (the diagram's InfraSvc and External zones) are IP groups.
 
 A workload domain zone holds one workload domain, or the workload domains sharing an NSX Manager
 cluster. The diagram shows both cases:
@@ -125,7 +160,7 @@ balancer VIPs. NSX discovers each VIP on the Management Services node holding it
 
 | Group | Membership |
 |---|---|
-| `VCF_FLEET` | `VCF_FM`, the management domain zone and every workload domain zone |
+| `VCF_FLEET` | `VCF_FM`, the management domain zone, every workload domain zone, and any `HSM_<KEY>` |
 | `VCF_FM` | The fleet management groups below |
 | `VCF_OPS`, `VCF01_SDDC`, `VCF01_LIC`, `VCF01_LHUB`, `VCF01_SSPI01`, `VCF_OPS_NET` | VM tag `vcf_fm\|<component>`, applied by the module to the VM with that name (single-instance components) or the VMs with that prefix |
 | `VCF01_OPS_CP`, `VCF01_OPS_NET_CN`, `VCF_A`, `VCF01_MSVC` | VM name starts with the prefix |
@@ -136,6 +171,7 @@ balancer VIPs. NSX discovers each VIP on the Management Services node holding it
 | `<C>_NSX`, `<C>_AVI` | VM name starts with the prefix |
 | `<C>_SSP` | VM name starts with `node_prefix`, or IP group from `node_pool` |
 | `<C>_SSP_SVC` | SSP Service IP Pool, tagged with the NSX Manager cluster key |
+| `HSM_<KEY>` | VM name equals `hardware_support_managers[*].vm_name`, or its `ips`, or both; created only when given |
 | `BASTION`, `TOOLS`, `BACKUP_SVC`, `SMTP_SVC`, `SIEM_SVC`, `DNS_SVC`, `NTP_SVC`, `DHCP_SVC`, `AD_SVC`, `SYSLOG_SVC`, `LOG_ARCHIVE_SVC` | IP addresses; empty when not given |
 
 `VCF01` comes from `vcf_instance_name`. `<D>` is the upper-cased domain key. For zone and NSX
@@ -209,10 +245,22 @@ first apply cannot cut off management traffic (MDS-REQD-CFG-035, SEC-MD-CFG-041)
   (`internet_fqdns`) against <https://ports.broadcom.com> for your release.
 - **Check before `application_lockdown_action = "DROP"`:** flows the 9.0 policies don't cover and
   that may show up in the logs:
-  - vCenter reduced downtime upgrades: the temporary vCenter VM has a different name;
+  - vCenter reduced downtime upgrades: the temporary vCenter VM has a different name, and the
+    upgrade's flows show in the `app_<d>_vc` lockdown logs;
   - vCenter ↔ vCenter within a zone;
   - NSX Manager ↔ Avi endpoint registration;
   - fleet management components ↔ License Server or License Hub.
+- **Flows not covered** (listed on ports.broadcom.com for 9.1; allow them yourself if you use them):
+  - SDDC Manager → ESX TCP/902 and NFS (2049, 32766, 32767), listed for bring-up and "not typically
+    active outside the initial deployment phase". If a hosts group holds the whole host network,
+    watch the zone lockdown logs while commissioning hosts;
+  - vCenter and ESX → Key Management Server, TCP/5696 (vSAN or VM encryption);
+  - backup proxies → ESX TCP/902 (NFC), for image-level VM backup;
+  - vCenter file-based backup over FTPS (TCP/990), SMB (TCP/445) or NFS (111, 2049, 635, 1110,
+    4045); the Fleet backup rule allows SSH, FTP, HTTPS and ICMP;
+  - syslog over TLS to external servers: TCP/1514 (log management), TCP/6514 (NSX transport nodes);
+  - VCF Operations for Networks → Avi controllers UDP/2191 (flow collection), when Avi is a data
+    source.
 
 ## Differences from the design guide
 
@@ -236,7 +284,10 @@ first apply cannot cut off management traffic (MDS-REQD-CFG-035, SEC-MD-CFG-041)
 - **Mail:** it uses the built-in `SMTP` and `SMTP_TLS` (TCP/587) services; NSX has no `SMTP_SSL`
   built-in.
 - **Log archive:** the Fleet policy adds a log management archive rule to `LOG_ARCHIVE_SVC` (NFS,
-  HTTPS for S3).
+  HTTPS for S3). ports.broadcom.com lists the flow with S3 on TCP/8443; S3 endpoints normally use
+  HTTPS on 443.
+- **Hardware Support Managers:** the `HSM_<KEY>` groups, their membership in `VCF_FLEET` and their
+  vCenter rules in the VCF Fleet Policy are not in the guide (see [Hardware Support Managers](#hardware-support-managers)).
 - **Infrastructure syslog:** the rule also allows `SIEM_SVC` and `VCF01_MSVC`. The guide's
   Infrastructure lock-down would otherwise drop syslog to VCF Management Services before the
   Environment rules allow it.
@@ -290,7 +341,8 @@ No resources.
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_application_lockdown_action"></a> [application\_lockdown\_action](#input\_application\_lockdown\_action) | Action of the Application-category lock-down rules (VCF 9.0 SEC-MD-CFG-041). Move to DROP after lockdown\_action, once the Application lock-down logs show no legitimate traffic. | `string` | `"ALLOW"` | no |
 | <a name="input_external_services"></a> [external\_services](#input\_external\_services) | IP addresses, ranges or CIDRs of the infrastructure and external services the VCF fleet uses.<br/>An empty list creates an empty group, so the rules for that service match nothing.<br/>`log_archive` holds the NFS or S3 targets that log management archives to. | <pre>object({<br/>    bastion     = optional(list(string), [])<br/>    tools       = optional(list(string), [])<br/>    backup      = optional(list(string), [])<br/>    smtp        = optional(list(string), [])<br/>    siem        = optional(list(string), [])<br/>    dns         = list(string)<br/>    ntp         = list(string)<br/>    dhcp        = optional(list(string), [])<br/>    ad          = optional(list(string), [])<br/>    syslog      = optional(list(string), [])<br/>    log_archive = optional(list(string), [])<br/>  })</pre> | n/a | yes |
-| <a name="input_fleet_management"></a> [fleet\_management](#input\_fleet\_management) | VCF fleet management components. `*_name` values are the VM names of single-instance components;<br/>`*_prefix` values are VM name prefixes of components that can have several VMs.<br/>`vcf_automation_lb_ips` are the VCF Automation native load balancer IPs. Leave `vcf_operations_networks` unset if VCF<br/>Operations for Networks is not deployed. | <pre>object({<br/>    vcf_operations_prefix               = string<br/>    vcf_operations_cloud_proxy_prefix   = string<br/>    vcf_management_services_prefix      = string<br/>    vcf_automation_prefix               = string<br/>    vcf_automation_lb_ips               = list(string)<br/>    vcf_automation_external_lb_ips      = optional(list(string), [])<br/>    sddc_manager_name                   = string<br/>    license_server_name                 = string<br/>    license_hub_name                    = string<br/>    ssp_installer_name                  = string<br/>    vcf_operations_networks = optional(object({<br/>      platform_prefix  = string<br/>      collector_prefix = string<br/>    }))<br/>  })</pre> | n/a | yes |
+| <a name="input_fleet_management"></a> [fleet\_management](#input\_fleet\_management) | VCF fleet management components. `*_name` values are the VM names of single-instance components;<br/>`*_prefix` values are VM name prefixes of components that can have several VMs.<br/>`vcf_automation_lb_ips` are the VCF Automation native load balancer IPs. Leave `vcf_operations_networks` unset if VCF<br/>Operations for Networks is not deployed. | <pre>object({<br/>    vcf_operations_prefix             = string<br/>    vcf_operations_cloud_proxy_prefix = string<br/>    vcf_management_services_prefix    = string<br/>    vcf_automation_prefix             = string<br/>    vcf_automation_lb_ips             = list(string)<br/>    vcf_automation_external_lb_ips    = optional(list(string), [])<br/>    sddc_manager_name                 = string<br/>    license_server_name               = string<br/>    license_hub_name                  = string<br/>    ssp_installer_name                = string<br/>    vcf_operations_networks = optional(object({<br/>      platform_prefix  = string<br/>      collector_prefix = string<br/>    }))<br/>  })</pre> | n/a | yes |
+| <a name="input_hardware_support_managers"></a> [hardware\_support\_managers](#input\_hardware\_support\_managers) | vSphere Lifecycle Manager Hardware Support Managers (e.g. HPE OneView, Dell OpenManage) running as<br/>VMs or appliances, by key. Not part of the design guide. `vm_name` is the exact VM name and `ips`<br/>its IP addresses, ranges or CIDRs; give either or both. `vm_name` only matches VMs in the<br/>inventory of the NSX Manager this module runs against (the management domain's); use `ips` for<br/>an HSM anywhere else. HSMs join VCF\_FLEET, and the VCF Fleet Policy allows them to and from<br/>their vCenters. `domains` lists the domain keys whose vCenter uses the HSM. `to_hsm` and<br/>`from_hsm` are NSX service paths (e.g. "/infra/services/HTTPS"): what the vCenters open to the<br/>HSM (default: the built-in HTTPS, as ports.broadcom.com lists) and what the HSM opens to the<br/>vCenters (default: none). The ports depend on the vendor; create any custom services yourself. | <pre>map(object({<br/>    vm_name  = optional(string)<br/>    ips      = optional(list(string), [])<br/>    domains  = list(string)<br/>    to_hsm   = optional(list(string))<br/>    from_hsm = optional(list(string), [])<br/>  }))</pre> | `{}` | no |
 | <a name="input_internet_fqdns"></a> [internet\_fqdns](#input\_internet\_fqdns) | Domain names the VCF fleet may reach over HTTPS for depot and upgrade downloads (MDS-REQD-CFG-030). The design guide lists specific hosts; see https://ports.broadcom.com for the current list. | `list(string)` | <pre>[<br/>  "*.broadcom.com",<br/>  "*.vmware.com",<br/>  "*.broadcom.net"<br/>]</pre> | no |
 | <a name="input_lockdown_action"></a> [lockdown\_action](#input\_lockdown\_action) | Action of the Environment and Infrastructure lock-down rules. Start with ALLOW (logged) and switch to DROP once the lock-down logs show no legitimate traffic (MDS-REQD-CFG-035). | `string` | `"ALLOW"` | no |
 | <a name="input_management_domain"></a> [management\_domain](#input\_management\_domain) | The management domain. `name` is its key (e.g. m01). `nsx_manager_cluster` is a key of<br/>`nsx_manager_clusters`. `edges` lists NSX Edge nodes in this domain; an edge cluster shared by<br/>workload domains on one NSX Manager can be listed on any of them. `avi_service_engines` lists the Avi Service Engine management networks<br/>of SEs running in this domain. | <pre>object({<br/>    name                = string<br/>    vcenter_name        = string<br/>    nsx_manager_cluster = string<br/>    hosts               = list(string)<br/>    edges               = optional(list(string), [])<br/>    avi_service_engines = optional(list(string), [])<br/>  })</pre> | n/a | yes |
@@ -305,6 +357,7 @@ No resources.
 | <a name="output_domain_group_paths"></a> [domain\_group\_paths](#output\_domain\_group\_paths) | Policy paths of each domain's groups. |
 | <a name="output_external_group_paths"></a> [external\_group\_paths](#output\_external\_group\_paths) | Policy paths of the infrastructure and external service groups. |
 | <a name="output_fleet_group_paths"></a> [fleet\_group\_paths](#output\_fleet\_group\_paths) | Policy paths of VCF\_FLEET and the fleet management groups. |
+| <a name="output_hardware_support_managers"></a> [hardware\_support\_managers](#output\_hardware\_support\_managers) | Per Hardware Support Manager: its group path, the vCenter groups allowed to and from it, and the services each way. |
 | <a name="output_nsx_manager_cluster_group_paths"></a> [nsx\_manager\_cluster\_group\_paths](#output\_nsx\_manager\_cluster\_group\_paths) | Policy paths of each NSX Manager cluster's groups. |
 | <a name="output_policy_paths"></a> [policy\_paths](#output\_policy\_paths) | Policy paths of all security policies. |
 | <a name="output_zone_group_paths"></a> [zone\_group\_paths](#output\_zone\_group\_paths) | The management domain zone and each workload domain zone (keyed by NSX Manager cluster): the zone group's path and display name, and the groups statically included in it. |

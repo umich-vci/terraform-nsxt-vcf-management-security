@@ -44,7 +44,7 @@ variables {
   service_paths = {
     https        = "/infra/services/HTTPS", http = "/infra/services/HTTP", ssh = "/infra/services/SSH",
     icmp_all     = "/infra/services/ICMP-ALL", icmp_echo = "/infra/services/ICMP-Echo", vami = "/infra/services/TCP-5480",
-    vc_db        = "/infra/services/TCP-5432", salt = "/infra/services/TCP-4505_4506", syslog_tcp = "/infra/services/Syslog-TCP",
+    salt         = "/infra/services/TCP-4505_4506", syslog_tcp = "/infra/services/Syslog-TCP",
     syslog_udp   = "/infra/services/Syslog-UDP", syslog_tls = "/infra/services/TCP-1514", log_api = "/infra/services/TCP-9543",
     ops_networks = "/infra/services/TCP-1991", netflow = "/infra/services/UDP-2055", nfs = "/infra/services/NFS-TCP",
     iscsi        = "/infra/services/iSCSI", messaging = "/infra/services/TCP-9092", k8s_api = "/infra/services/TCP-6443",
@@ -88,8 +88,12 @@ run "shared_nsx_zone_with_everything" {
     error_message = "Each domain should get its own vCenter Application policy."
   }
   assert {
-    condition     = length(nsxt_policy_security_policy.vcenter["w01"].rule) == 10 && length(nsxt_policy_security_policy.vcenter["w02"].rule) == 8
+    condition     = length(nsxt_policy_security_policy.vcenter["w01"].rule) == 9 && length(nsxt_policy_security_policy.vcenter["w02"].rule) == 7
     error_message = "vCenter policies should include host, Avi, SSP and (w01 only) Supervisor rules."
+  }
+  assert {
+    condition     = alltrue([for p in values(nsxt_policy_security_policy.vcenter) : alltrue([for r in p.rule : !strcontains(r.display_name, "Appliance Management")])])
+    error_message = "The zone-wide Appliance Management and Upgrade rule should be gone."
   }
   assert {
     condition = nsxt_policy_security_policy.nsx[0].rule[1].source_groups == toset([
@@ -177,7 +181,7 @@ run "management_nsx_without_avi_or_ssp" {
     error_message = "The DFW-excluded management NSX Manager, absent Avi and absent SSP get no Application policies."
   }
   assert {
-    condition     = length(nsxt_policy_security_policy.vcenter["m01"].rule) == 6
+    condition     = length(nsxt_policy_security_policy.vcenter["m01"].rule) == 5
     error_message = "Without Avi, SSP or Supervisors the vCenter policy has only its base rules."
   }
   assert {

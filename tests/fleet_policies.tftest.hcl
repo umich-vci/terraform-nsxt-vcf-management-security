@@ -162,3 +162,49 @@ run "everything_enabled" {
     error_message = "lockdown_action and application_lockdown_action should be independent."
   }
 }
+
+run "hardware_support_managers" {
+  module {
+    source = "./modules/fleet-policies"
+  }
+
+  variables {
+    hardware_support_managers = {
+      oneview = {
+        group         = "/infra/domains/default/groups/HSM_ONEVIEW"
+        vcs           = ["/infra/domains/default/groups/M01_VC", "/infra/domains/default/groups/W01_VC"]
+        to_services   = ["/infra/services/HTTPS"]
+        from_services = ["/infra/services/HTTPS", "/infra/services/UDP-162"]
+      }
+      ome = {
+        group         = "/infra/domains/default/groups/HSM_OME"
+        vcs           = ["/infra/domains/default/groups/W02_VC"]
+        to_services   = ["/infra/services/HTTPS"]
+        from_services = []
+      }
+    }
+  }
+
+  assert {
+    condition = toset(one(nsxt_policy_group.vcf_fleet.criteria).path_expression[0].member_paths) == toset([
+      "/infra/domains/default/groups/VCF_FM", "/infra/domains/default/groups/VCF01_M01", "/infra/domains/default/groups/VCF01_W01",
+      "/infra/domains/default/groups/HSM_ONEVIEW", "/infra/domains/default/groups/HSM_OME",
+    ])
+    error_message = "HSM groups should join VCF_FLEET so the Infrastructure and Fleet rules apply to them."
+  }
+  assert {
+    condition = length([
+      for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "vCenters to HSM ONEVIEW" &&
+      r.source_groups == toset(["/infra/domains/default/groups/M01_VC", "/infra/domains/default/groups/W01_VC"]) &&
+      r.destination_groups == toset(["/infra/domains/default/groups/HSM_ONEVIEW"]) && r.direction == "IN_OUT"
+    ]) == 1
+    error_message = "vCenter-to-HSM rules should run from the selected vCenters to the HSM, enforced at both ends."
+  }
+  assert {
+    condition = length([
+      for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "HSM ONEVIEW to vCenters" &&
+      r.services == toset(["/infra/services/HTTPS", "/infra/services/UDP-162"])
+    ]) == 1 && length([for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "HSM OME to vCenters"]) == 0
+    error_message = "HSM-to-vCenter rules should use from_services and be skipped when it is empty."
+  }
+}

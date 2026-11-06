@@ -37,7 +37,8 @@ terraform-docs markdown table --output-file README.md --output-mode inject .
 ## Layout and data flow
 
 ```
-common               services (built-in lookup + custom), context profiles, external/infra IP groups
+common               services (built-in lookup + custom), context profiles, external/infra IP groups,
+                     HSM_<KEY> groups
 fleet-management     fleet component VM tags and groups, VCF_FM
 nsx-manager-cluster  per NSX Manager cluster: <C>_NSX, <C>_AVI, <C>_SSP, <C>_SSP_SVC
 domain               per domain: <D>_VC, <D>_HOSTS, <D>_EDGE, <D>_SUP, <D>_AVI_SE

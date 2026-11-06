@@ -84,3 +84,44 @@ run "missing_builtin_service" {
 
   expect_failures = [output.service_paths]
 }
+
+run "hardware_support_managers" {
+  module {
+    source = "./modules/common"
+  }
+
+  variables {
+    hardware_support_managers = {
+      oneview = { vm_name = "m01-hsm01" }
+      ome     = { ips = ["198.51.100.70"] }
+      both    = { vm_name = "m01-hsm02", ips = ["198.51.100.71"] }
+    }
+  }
+
+  assert {
+    condition = (
+      nsxt_policy_group.hsm["oneview"].nsx_id == "HSM_ONEVIEW" && length(nsxt_policy_group.hsm["oneview"].criteria) == 1 &&
+      one(nsxt_policy_group.hsm["oneview"].criteria[0].condition).value == "m01-hsm01" &&
+      one(nsxt_policy_group.hsm["oneview"].criteria[0].condition).operator == "EQUALS"
+    )
+    error_message = "Each HSM should get a group matching its exact VM name."
+  }
+  assert {
+    condition = (
+      length(nsxt_policy_group.hsm["ome"].criteria) == 1 && length(nsxt_policy_group.hsm["ome"].conjunction) == 0 &&
+      one(nsxt_policy_group.hsm["ome"].criteria[0].ipaddress_expression).ip_addresses == toset(["198.51.100.70"])
+    )
+    error_message = "An HSM given only IPs should get a single IP criterion."
+  }
+  assert {
+    condition = (
+      length(nsxt_policy_group.hsm["both"].criteria) == 2 && nsxt_policy_group.hsm["both"].conjunction[0].operator == "OR" &&
+      one(nsxt_policy_group.hsm["both"].criteria[0].condition).value == "m01-hsm02"
+    )
+    error_message = "An HSM given a VM name and IPs should match either."
+  }
+  assert {
+    condition     = length(nsxt_policy_service.custom) == length(local.custom_services) && !contains(keys(output.service_paths), "vc_db")
+    error_message = "HSMs should create no services, and the TCP/5432 vc_db service should be gone."
+  }
+}

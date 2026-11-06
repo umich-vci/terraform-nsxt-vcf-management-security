@@ -36,3 +36,15 @@ output "policy_paths" {
     merge([for k, z in module.zone : { for p, path in z.policy_paths : "zone_${k}_${p}" => path }]...),
   )
 }
+
+output "hardware_support_managers" {
+  description = "Per Hardware Support Manager: its group path, the vCenter groups allowed to and from it, and the services each way."
+  value = {
+    for k, h in var.hardware_support_managers : k => {
+      group          = module.common.hsm_group_paths[k]
+      vcenter_groups = [for d in distinct(h.domains) : module.domain[d].group_paths.vc]
+      to_services    = h.to_hsm == null ? [module.common.service_paths["https"]] : h.to_hsm
+      from_services  = h.from_hsm
+    }
+  }
+}

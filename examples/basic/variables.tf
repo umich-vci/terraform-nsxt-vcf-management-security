@@ -46,6 +46,12 @@ variable "workload_domains" {
   description = "See the module's workload_domains input."
 }
 
+variable "hardware_support_managers" {
+  type        = any
+  default     = {}
+  description = "See the module's hardware_support_managers input."
+}
+
 variable "application_lockdown_action" {
   type        = string
   default     = "ALLOW"

@@ -38,7 +38,6 @@ locals {
     ops_networks = { description = "VCF Operations for Networks", protocol = "TCP", ports = ["1991"] }
     netflow      = { description = "VCF Operations for Networks flows", protocol = "UDP", ports = ["2055"] }
     messaging    = { description = "SSP / License Hub messaging", protocol = "TCP", ports = ["9092"] }
-    vc_db        = { description = "vCenter database (reduced downtime upgrade)", protocol = "TCP", ports = ["5432"] }
     iofilter     = { description = "vCenter IOFilter VASA provider", protocol = "TCP", ports = ["1443"] }
     dump_coll    = { description = "ESX Dump Collector", protocol = "TCP", ports = ["6500"] }
     auto_deploy  = { description = "vSphere Auto Deploy", protocol = "TCP", ports = ["6501-6502"] }
