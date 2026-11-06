@@ -21,17 +21,99 @@ provider "nsxt" {
   retry_on_status_codes = [429]
 }
 
+# Addresses below are documentation ranges (RFC 5737). Replace every value.
 module "vcf_management_security" {
   source = "../.."
 
-  external_services    = var.external_services
-  fleet_management     = var.fleet_management
-  nsx_manager_clusters = var.nsx_manager_clusters
-  management_domain    = var.management_domain
-  workload_domains     = var.workload_domains
-  lockdown_action      = var.lockdown_action
+  external_services = {
+    bastion     = ["192.0.2.10"]
+    tools       = ["192.0.2.11"]
+    backup      = ["192.0.2.12"]
+    smtp        = ["192.0.2.13"]
+    siem        = ["192.0.2.14"]
+    dns         = ["192.0.2.53", "192.0.2.54"]
+    ntp         = ["192.0.2.123"]
+    dhcp        = ["192.0.2.67"]
+    ad          = ["192.0.2.88"]
+    syslog      = ["192.0.2.114"]
+    log_archive = ["192.0.2.200"]
+  }
 
-  hpe_oneview_hsms = var.hpe_oneview_hsms
+  fleet_management = {
+    vcf_operations_prefix             = "vcf-ops01"
+    vcf_operations_cloud_proxy_prefix = "vcf-cp01"
+    vcf_management_services_prefix    = "vcf-ms01-"
+    vcf_automation_prefix             = "vcf-auto01-"
+    vcf_automation_lb_ips             = ["198.51.100.20"]
+    sddc_manager_name                 = "m01-sddc01"
+    license_server_name               = "vcf-lic01"
+    license_hub_name                  = "vcf-lhub01"
+    ssp_installer_name                = "vcf-sspi01"
 
-  application_lockdown_action = var.application_lockdown_action
+    # Remove if VCF Operations for Networks is not deployed.
+    vcf_operations_networks = {
+      platform_prefix  = "vcf-opsnet01"
+      collector_prefix = "vcf-opsnetc"
+    }
+  }
+
+  nsx_manager_clusters = {
+    m01 = {
+      vm_name_prefix = "m01-nsx01"
+      avi            = { controller_prefix = "m01-avi01" }
+    }
+
+    # Shared by w01 and w02: one workload domain zone. Its edge cluster is listed on w01. Its SSP runs in w01, so it is
+    # grouped by its Node IP Pool; omit ssp.domain and set node_prefix instead to run it in the
+    # management domain.
+    w01 = {
+      vm_name_prefix = "w01-nsx01"
+      avi            = { controller_prefix = "w01-avi01" }
+      ssp = {
+        node_pool    = ["203.0.113.160-203.0.113.181"]
+        service_pool = ["203.0.113.32-203.0.113.42"]
+        domain       = "w01"
+      }
+    }
+  }
+
+  management_domain = {
+    name                = "m01"
+    vcenter_name        = "m01-vc01"
+    nsx_manager_cluster = "m01"
+    hosts               = ["198.51.100.0/27"]
+    edges               = ["198.51.100.40-198.51.100.43"]
+  }
+
+  workload_domains = {
+    w01 = {
+      vcenter_name        = "w01-vc01"
+      nsx_manager_cluster = "w01"
+      hosts               = ["203.0.113.0/28"]
+      edges               = ["203.0.113.16-203.0.113.19"]
+      supervisors         = ["203.0.113.64/28"]
+      avi_service_engines = ["203.0.113.96/28"]
+    }
+    w02 = {
+      vcenter_name        = "w02-vc01"
+      nsx_manager_cluster = "w01"
+      hosts               = ["203.0.113.128/28"]
+    }
+  }
+
+  # HPE OneView for VMware vCenter, the vSphere Lifecycle Manager Hardware Support Manager (not part of
+  # the design guide). vm_name matches VMs on this NSX Manager; use ips for an appliance anywhere else.
+  hpe_oneview_hsms = {
+    ov01 = {
+      vm_name = "m01-hsm01"
+      domains = ["m01", "w01"]
+      oneview = ["192.0.2.70"]
+      ilo     = ["192.0.2.0/26"]
+    }
+  }
+
+  # Start with ALLOW (logged), review the lock-down logs, then switch to DROP: the zone and
+  # Infrastructure lock-downs first, the Application lock-downs later.
+  lockdown_action             = "ALLOW"
+  application_lockdown_action = "ALLOW"
 }
