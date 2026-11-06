@@ -27,6 +27,23 @@ mock_provider "nsxt" {
         "Vmware-UpdateMgr-update"       = "/infra/services/VUM-update"
         "VMware-ESXi5.x-UDP"            = "/infra/services/ESXi-UDP"
         "CIM-HTTPS"                     = "/infra/services/CIM-HTTPS"
+        "TCP-5480"                      = "/infra/services/TCP-5480"
+        "TCP-6443"                      = "/infra/services/TCP-6443"
+        "TCP-1514"                      = "/infra/services/TCP-1514"
+        "TCP-9543"                      = "/infra/services/TCP-9543"
+        "TCP-4505_4506"                 = "/infra/services/TCP-4505_4506"
+        "TCP-1991"                      = "/infra/services/TCP-1991"
+        "UDP-2055"                      = "/infra/services/UDP-2055"
+        "TCP-9092"                      = "/infra/services/TCP-9092"
+        "TCP-1443"                      = "/infra/services/TCP-1443"
+        "TCP-6500"                      = "/infra/services/TCP-6500"
+        "TCP-6501_6502"                 = "/infra/services/TCP-6501_6502"
+        "TCP-7475_7476"                 = "/infra/services/TCP-7475_7476"
+        "TCP-1234_1235"                 = "/infra/services/TCP-1234_1235"
+        "TCP-5671"                      = "/infra/services/TCP-5671"
+        "TCP-8443"                      = "/infra/services/TCP-8443"
+        "TCP-30000_30005"               = "/infra/services/TCP-30000_30005"
+        "TCP-3512"                      = "/infra/services/TCP-3512"
       }
     }
   }
@@ -41,10 +58,6 @@ mock_provider "nsxt" {
   }
   mock_resource "nsxt_policy_service" {
     defaults = { path = "/infra/services/MOCK" }
-  }
-  override_resource {
-    target = module.common.nsxt_policy_service.custom["tcp_3512"]
-    values = { path = "/infra/services/TCP-3512" }
   }
   mock_resource "nsxt_policy_context_profile" {
     defaults = { path = "/infra/context-profiles/MOCK" }

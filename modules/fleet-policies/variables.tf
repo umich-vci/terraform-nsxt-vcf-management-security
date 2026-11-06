@@ -58,7 +58,7 @@ variable "external_group_paths" {
 
 variable "service_paths" {
   type        = map(string)
-  description = "Policy paths of services, by logical name, from the common module."
+  description = "Policy paths of NSX services, built-in and custom, by display name, from the common module."
 }
 
 variable "context_profile_paths" {

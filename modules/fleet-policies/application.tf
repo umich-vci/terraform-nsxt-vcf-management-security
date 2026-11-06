@@ -16,7 +16,7 @@ resource "nsxt_policy_security_policy" "vcf_operations" {
     display_name       = "VCF Operations Components"
     source_groups      = [local.fleet.ops, local.fleet.ops_cp, local.fleet.sddc]
     destination_groups = [local.fleet.ops, local.fleet.ops_cp, local.fleet.sddc]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -25,7 +25,7 @@ resource "nsxt_policy_security_policy" "vcf_operations" {
     display_name       = "VCF Operations to VCF Automation and Operations for Networks"
     source_groups      = [local.fleet.ops]
     destination_groups = [local.fleet.vcf_a, local.fleet.ops_networks]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -43,7 +43,7 @@ resource "nsxt_policy_security_policy" "vcf_operations" {
     display_name       = "VCF Management Services to VCF Operations"
     source_groups      = [local.fleet.msvc]
     destination_groups = [local.fleet.ops]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -73,7 +73,7 @@ resource "nsxt_policy_security_policy" "vcf_operations_networks" {
     display_name       = "VCF Operations to Operations for Networks"
     source_groups      = [local.fleet.ops]
     destination_groups = [local.fleet.ops_networks]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -90,7 +90,7 @@ resource "nsxt_policy_security_policy" "vcf_operations_networks" {
     display_name       = "Collectors to Operations for Networks Platform"
     source_groups      = [local.fleet.ops_net_cn]
     destination_groups = [local.fleet.ops_networks]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -128,7 +128,7 @@ resource "nsxt_policy_security_policy" "vcf_automation" {
     display_name       = "VCF Operations to VCF Automation"
     source_groups      = [local.fleet.ops]
     destination_groups = [local.fleet.vcf_a]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -139,7 +139,7 @@ resource "nsxt_policy_security_policy" "vcf_automation" {
     display_name       = "VCF Operations Fleet Management to VCF Automation"
     source_groups      = [local.fleet.msvc]
     destination_groups = [local.fleet.vcf_a]
-    services           = [local.svc["ssh"], local.svc["https"], local.svc["k8s_api"], local.svc["ops_lcm"]]
+    services           = [var.service_paths["SSH"], var.service_paths["HTTPS"], var.service_paths["TCP-6443"], var.service_paths["TCP-30000_30005"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -155,7 +155,7 @@ resource "nsxt_policy_security_policy" "vcf_automation" {
   rule {
     display_name       = "Portal Access through Native Load Balancer"
     destination_groups = [local.fleet.vcf_a_nlb]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false
@@ -165,7 +165,7 @@ resource "nsxt_policy_security_policy" "vcf_automation" {
     display_name       = "Portal Access from External Load Balancer"
     source_groups      = [local.fleet.vcf_a_elb]
     destination_groups = [local.fleet.vcf_a]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false

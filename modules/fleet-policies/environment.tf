@@ -12,7 +12,7 @@ resource "nsxt_policy_security_policy" "fleet" {
     display_name       = "Bastion to VCF Fleet"
     source_groups      = [local.ext.bastion]
     destination_groups = [nsxt_policy_group.vcf_fleet.path]
-    services           = [local.svc["https"], local.svc["ssh"], local.svc["icmp_all"], local.svc["rdp"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["SSH"], var.service_paths["ICMP ALL"], var.service_paths["RDP"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false
@@ -22,7 +22,7 @@ resource "nsxt_policy_security_policy" "fleet" {
     display_name       = "Tools to VCF Fleet"
     source_groups      = [local.ext.tools]
     destination_groups = [nsxt_policy_group.vcf_fleet.path]
-    services           = [local.svc["https"], local.svc["ssh"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["SSH"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false
@@ -31,7 +31,7 @@ resource "nsxt_policy_security_policy" "fleet" {
   rule {
     display_name       = "VCF Automation Portal Access"
     destination_groups = [local.fleet.vcf_a]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "JUMP_TO_APPLICATION"
     direction          = "IN"
     logged             = false
@@ -41,7 +41,7 @@ resource "nsxt_policy_security_policy" "fleet" {
     display_name       = "VCF Fleet Backup Traffic"
     source_groups      = [nsxt_policy_group.vcf_fleet.path]
     destination_groups = [local.ext.backup]
-    services           = [local.svc["icmp_all"], local.svc["https"], local.svc["ftp"], local.svc["ssh"]]
+    services           = [var.service_paths["ICMP ALL"], var.service_paths["HTTPS"], var.service_paths["FTP"], var.service_paths["SSH"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -51,7 +51,7 @@ resource "nsxt_policy_security_policy" "fleet" {
     display_name       = "VCF Fleet Mail Server Traffic"
     source_groups      = [nsxt_policy_group.vcf_fleet.path]
     destination_groups = [local.ext.smtp]
-    services           = [local.svc["smtp"], local.svc["smtp_tls"]]
+    services           = [var.service_paths["SMTP"], var.service_paths["SMTP_TLS"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -64,7 +64,7 @@ resource "nsxt_policy_security_policy" "fleet" {
     display_name       = "Log Management Archive Traffic"
     source_groups      = [local.fleet.msvc]
     destination_groups = [local.ext.log_archive]
-    services           = [local.svc["nfs"], local.svc["https"]]
+    services           = [var.service_paths["NFS (TCP)"], var.service_paths["HTTPS"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -73,7 +73,7 @@ resource "nsxt_policy_security_policy" "fleet" {
   rule {
     display_name  = "Broadcom Depot Traffic"
     source_groups = [nsxt_policy_group.vcf_fleet.path]
-    services      = [local.svc["https"]]
+    services      = [var.service_paths["HTTPS"]]
     profiles      = [var.context_profile_paths.internet_fqdns]
     action        = "ALLOW"
     direction     = "OUT"
@@ -103,7 +103,7 @@ resource "nsxt_policy_security_policy" "fleet" {
     content {
       display_name  = "SSP Feeds"
       source_groups = var.dfw_ssp_paths
-      services      = [local.svc["https"]]
+      services      = [var.service_paths["HTTPS"]]
       action        = "JUMP_TO_APPLICATION"
       direction     = "OUT"
       logged        = false
@@ -133,7 +133,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "VCF Fleet Management to VCF Domains"
     source_groups      = [local.fleet.vcf_fm]
     destination_groups = local.zone_paths
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -143,7 +143,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "SDDC Manager to VCF Domains"
     source_groups      = [local.fleet.sddc]
     destination_groups = local.zone_paths
-    services           = [local.svc["ssh"], local.svc["vami"], local.svc["icmp_echo"]]
+    services           = [var.service_paths["SSH"], var.service_paths["TCP-5480"], var.service_paths["ICMP Echo Request"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -153,7 +153,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "Components Backup to SDDC Manager"
     source_groups      = local.nsx_and_avi
     destination_groups = [local.fleet.sddc]
-    services           = [local.svc["ssh"]]
+    services           = [var.service_paths["SSH"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false
@@ -163,7 +163,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "VCF Operations Cloud Proxy to VCF Domains"
     source_groups      = [local.fleet.ops_cp]
     destination_groups = concat([local.fleet.vcf_fm], local.zone_paths)
-    services           = [local.svc["icmp_echo"]]
+    services           = [var.service_paths["ICMP Echo Request"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -183,7 +183,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "VCF Domains to VCF Operations for Networks"
     source_groups      = local.zone_paths
     destination_groups = [local.fleet.ops_net_cn]
-    services           = [local.svc["https"], local.svc["ops_networks"], local.svc["netflow"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["TCP-1991"], var.service_paths["UDP-2055"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false
@@ -196,7 +196,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
       display_name       = "Supervisors to VCF Automation and Cloud Proxy"
       source_groups      = local.sup_paths
       destination_groups = [local.fleet.vcf_a, local.fleet.ops_cp]
-      services           = [local.svc["https"]]
+      services           = [var.service_paths["HTTPS"]]
       action             = "ALLOW"
       direction          = "IN"
       logged             = false
@@ -209,7 +209,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
       display_name       = "VCF Automation to Supervisors"
       source_groups      = [local.fleet.vcf_a]
       destination_groups = local.sup_paths
-      services           = [local.svc["k8s_api"]]
+      services           = [var.service_paths["TCP-6443"]]
       action             = "ALLOW"
       direction          = "OUT"
       logged             = false
@@ -220,7 +220,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "vCenter Servers to VCF License Server"
     source_groups      = local.vc_paths
     destination_groups = [local.fleet.license_server]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false
@@ -230,7 +230,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "vDefend License Hub to VCF Domains"
     source_groups      = [local.fleet.license_hub]
     destination_groups = local.zone_paths
-    services           = [local.svc["https"], local.svc["nfs"], local.svc["iscsi"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["NFS (TCP)"], var.service_paths["VMware-iSCSI-Server"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -240,7 +240,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "VCF Domains to vDefend License Hub"
     source_groups      = local.zone_paths
     destination_groups = [local.fleet.license_hub]
-    services           = [local.svc["https"], local.svc["messaging"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["TCP-9092"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false
@@ -250,7 +250,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "SSP Installer to VCF Domains"
     source_groups      = [local.fleet.ssp_installer]
     destination_groups = local.zone_paths
-    services           = [local.svc["https"], local.svc["k8s_api"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["TCP-6443"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -260,7 +260,7 @@ resource "nsxt_policy_security_policy" "fleet_management" {
     display_name       = "VCF Domains to SSP Installer Registry"
     source_groups      = local.zone_paths
     destination_groups = [local.fleet.ssp_installer]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     direction          = "IN"
     logged             = false

@@ -1,4 +1,4 @@
-# The common module on its own: built-in service lookup and service groups.
+# The common module on its own: custom services, the service lookup and service groups.
 
 mock_provider "nsxt" {
   mock_data "nsxt_policy_services" {
@@ -27,6 +27,23 @@ mock_provider "nsxt" {
         "Vmware-UpdateMgr-update"       = "/infra/services/VUM-update"
         "VMware-ESXi5.x-UDP"            = "/infra/services/ESXi-UDP"
         "CIM-HTTPS"                     = "/infra/services/CIM-HTTPS"
+        "TCP-5480"                      = "/infra/services/TCP-5480"
+        "TCP-6443"                      = "/infra/services/TCP-6443"
+        "TCP-1514"                      = "/infra/services/TCP-1514"
+        "TCP-9543"                      = "/infra/services/TCP-9543"
+        "TCP-4505_4506"                 = "/infra/services/TCP-4505_4506"
+        "TCP-1991"                      = "/infra/services/TCP-1991"
+        "UDP-2055"                      = "/infra/services/UDP-2055"
+        "TCP-9092"                      = "/infra/services/TCP-9092"
+        "TCP-1443"                      = "/infra/services/TCP-1443"
+        "TCP-6500"                      = "/infra/services/TCP-6500"
+        "TCP-6501_6502"                 = "/infra/services/TCP-6501_6502"
+        "TCP-7475_7476"                 = "/infra/services/TCP-7475_7476"
+        "TCP-1234_1235"                 = "/infra/services/TCP-1234_1235"
+        "TCP-5671"                      = "/infra/services/TCP-5671"
+        "TCP-8443"                      = "/infra/services/TCP-8443"
+        "TCP-30000_30005"               = "/infra/services/TCP-30000_30005"
+        "TCP-3512"                      = "/infra/services/TCP-3512"
       }
     }
   }
@@ -58,8 +75,8 @@ run "builtins_and_groups" {
   }
 
   assert {
-    condition     = output.service_paths["https"] == "/infra/services/HTTPS" && output.service_paths["salt"] == "/infra/services/MOCK"
-    error_message = "Built-in services should come from the lookup and the rest from custom services."
+    condition     = output.service_paths["HTTPS"] == "/infra/services/HTTPS" && output.service_paths["TCP-4505_4506"] == "/infra/services/TCP-4505_4506"
+    error_message = "Built-in and custom services should both come from the lookup, by display name."
   }
   assert {
     condition     = length(nsxt_policy_group.external["dns"].criteria) == 1 && length(nsxt_policy_group.external["siem"].criteria) == 0
@@ -71,36 +88,21 @@ run "builtins_and_groups" {
   }
 }
 
-run "missing_builtin_service" {
-  command = plan
-
-  module {
-    source = "./modules/common"
-  }
-
-  override_data {
-    target = data.nsxt_policy_services.all
-    values = { items = { "HTTPS" = "/infra/services/HTTPS" } }
-  }
-
-  expect_failures = [output.service_paths]
-}
-
 run "custom_services" {
   module {
     source = "./modules/common"
   }
 
   assert {
-    condition     = nsxt_policy_service.custom["amqps"].display_name == "TCP-5671" && nsxt_policy_service.custom["amqps"].description == "AMQP over TLS"
-    error_message = "TCP/5671 should be the generic amqps service."
+    condition     = alltrue([for k, s in nsxt_policy_service.custom : s.display_name == k])
+    error_message = "Each custom service's display name should be its key, the name rules look it up by."
   }
   assert {
-    condition     = nsxt_policy_service.custom["tcp_3512"].display_name == "TCP-3512" && nsxt_policy_service.custom["tcp_3512"].description == "TCP-3512"
-    error_message = "TCP/3512 should be a generic custom service."
+    condition     = nsxt_policy_service.custom["TCP-5671"].description == "AMQP over TLS" && nsxt_policy_service.custom["TCP-3512"].description == "TCP-3512"
+    error_message = "TCP/5671 and TCP/3512 should be generic custom services."
   }
   assert {
-    condition     = !contains(keys(output.service_paths), "nsx_amqp") && !contains(keys(output.service_paths), "vc_db") && output.service_paths["cim_https"] == "/infra/services/CIM-HTTPS"
-    error_message = "nsx_amqp and vc_db should be gone, and CIM-HTTPS should come from the built-in lookup."
+    condition     = !contains(keys(nsxt_policy_service.custom), "TCP-5432")
+    error_message = "The TCP/5432 (vc_db) service should be gone."
   }
 }

@@ -37,7 +37,7 @@ terraform-docs markdown table --output-file README.md --output-mode inject .
 ## Layout and data flow
 
 ```
-common               services (built-in lookup + custom), context profiles, external/infra IP groups
+common               custom services + one services lookup, context profiles, external/infra IP groups
 fleet-management     fleet component VM tags and groups, VCF_FM
 nsx-manager-cluster  per NSX Manager cluster: <C>_NSX, <C>_AVI, <C>_SSP, <C>_SSP_SVC
 domain               per domain: <D>_VC, <D>_HOSTS, <D>_EDGE, <D>_SUP, <D>_AVI_SE
@@ -68,9 +68,13 @@ instance of the same call.
   - an empty group list in a rule means "any", so rules whose peer list can be empty are `dynamic`
     and skipped;
   - empty IP lists give empty groups.
-- **Services:** use NSX built-in services wherever one matches the protocol and port exactly,
-  through the single `nsxt_policy_services` lookup in `modules/common`. Create custom services only
-  for ports with no built-in, each covering one port or one contiguous range (e.g. TCP/4505-4506).
+- **Services:** use NSX built-in services wherever one matches the protocol and port exactly. Create
+  custom services only for ports with no built-in, each covering one port or one contiguous range
+  (e.g. TCP/4505-4506). Custom services live in `modules/common`, keyed by their display name, with
+  `create_before_destroy` (so a removed service is deleted after the rules stop using it). The single
+  `nsxt_policy_services` lookup there `depends_on` them, so its map holds built-ins and custom services
+  alike; rules index it by NSX display name (`var.service_paths["HTTPS"]`). Don't add another layer of
+  logical names, and don't give a custom service a display name another NSX service already uses.
   Don't combine unrelated ports such as 22 and 443 into one custom service without explicit
   confirmation; built-ins may cover several. Check direction and protocol against
   ports.broadcom.com: a built-in describes the server side.
@@ -110,7 +114,7 @@ git ls-files -co --exclude-standard | xargs grep -n -o -E '\b([0-9]{1,3}\.){3}[0
 - One test file per submodule (`run { module { source = "./modules/<name>" } }`) checks resource
   attributes directly.
 - Mocks:
-  - `mock_data "nsxt_policy_services"` must list every built-in in `modules/common/services.tf`;
+  - `mock_data "nsxt_policy_services"` must list every built-in and custom display name the rules use;
   - group paths must be valid policy paths;
   - `override_resource` / `override_data` give specific instances distinct values.
 - Runs that expect a validation or precondition failure use `command = plan` and `expect_failures`.

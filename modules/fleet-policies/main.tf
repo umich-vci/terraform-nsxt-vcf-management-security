@@ -1,5 +1,4 @@
 locals {
-  svc   = var.service_paths
   fleet = var.fleet_group_paths
   ext   = var.external_group_paths
 
@@ -8,7 +7,7 @@ locals {
   nsx_and_avi = distinct(flatten([for z in var.zones : z.nsx_and_avi]))
   sup_paths   = flatten([for z in var.zones : z.sups])
 
-  msvc_services = [local.svc["https"], local.svc["salt"], local.svc["syslog_tcp"], local.svc["syslog_udp"], local.svc["syslog_tls"], local.svc["log_api"]]
+  msvc_services = [var.service_paths["HTTPS"], var.service_paths["TCP-4505_4506"], var.service_paths["Syslog (TCP)"], var.service_paths["Syslog (UDP)"], var.service_paths["TCP-1514"], var.service_paths["TCP-9543"]]
 }
 
 # All VCF fleet components (MDS-REQD-CFG-014). Hardware Support Managers are added so that the

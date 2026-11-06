@@ -8,7 +8,6 @@ locals {
   domain_titles = {
     for k in keys(var.domains) : k => k == var.management_domain ? "Management Domain" : "Workload Domain ${upper(k)}"
   }
-  svc   = var.service_paths
   fleet = var.fleet_group_paths
   c     = var.cluster_group_paths
   zone  = nsxt_policy_group.zone.path

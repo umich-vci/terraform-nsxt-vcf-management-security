@@ -20,7 +20,7 @@ resource "nsxt_policy_security_policy" "vcenter" {
       display_name       = "vCenter to Hosts"
       source_groups      = [each.value.vc]
       destination_groups = [rule.value]
-      services           = [local.svc["update_mgr"], local.svc["icmp_all"], local.svc["iofilter"]]
+      services           = [var.service_paths["Update Manager"], var.service_paths["ICMP ALL"], var.service_paths["TCP-1443"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -33,8 +33,8 @@ resource "nsxt_policy_security_policy" "vcenter" {
       source_groups      = [rule.value]
       destination_groups = [each.value.vc]
       services = [
-        local.svc["https"], local.svc["vum"], local.svc["vum_update"], local.svc["esxi_udp"],
-        local.svc["dump_coll"], local.svc["auto_deploy"], local.svc["auth_proxy"],
+        var.service_paths["HTTPS"], var.service_paths["VMware-UpdateMgr-VUM"], var.service_paths["Vmware-UpdateMgr-update"], var.service_paths["VMware-ESXi5.x-UDP"],
+        var.service_paths["TCP-6500"], var.service_paths["TCP-6501_6502"], var.service_paths["TCP-7475_7476"],
       ]
       action = "ALLOW"
       logged = false
@@ -45,7 +45,7 @@ resource "nsxt_policy_security_policy" "vcenter" {
     display_name       = "vCenter to NSX Manager"
     source_groups      = [each.value.vc]
     destination_groups = [local.c.nsx]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -54,7 +54,7 @@ resource "nsxt_policy_security_policy" "vcenter" {
     display_name       = "NSX Manager to vCenter"
     source_groups      = [local.c.nsx]
     destination_groups = [each.value.vc]
-    services           = [local.svc["https"], local.svc["http"], local.svc["vum_update"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["HTTP"], var.service_paths["Vmware-UpdateMgr-update"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -65,7 +65,7 @@ resource "nsxt_policy_security_policy" "vcenter" {
       display_name       = "Avi to vCenter"
       source_groups      = [rule.value]
       destination_groups = [each.value.vc]
-      services           = [local.svc["https"]]
+      services           = [var.service_paths["HTTPS"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -77,7 +77,7 @@ resource "nsxt_policy_security_policy" "vcenter" {
       display_name       = "SSP to vCenter"
       source_groups      = [rule.value]
       destination_groups = [each.value.vc]
-      services           = [local.svc["https"]]
+      services           = [var.service_paths["HTTPS"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -89,7 +89,7 @@ resource "nsxt_policy_security_policy" "vcenter" {
       display_name       = "vCenter to Supervisor"
       source_groups      = [each.value.vc]
       destination_groups = [rule.value]
-      services           = [local.svc["k8s_api"]]
+      services           = [var.service_paths["TCP-6443"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -101,7 +101,7 @@ resource "nsxt_policy_security_policy" "vcenter" {
       display_name       = "Supervisor to vCenter"
       source_groups      = [rule.value]
       destination_groups = [each.value.vc]
-      services           = [local.svc["https"]]
+      services           = [var.service_paths["HTTPS"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -141,7 +141,7 @@ resource "nsxt_policy_security_policy" "nsx" {
     display_name       = "NSX Transport Node Messaging"
     source_groups      = concat([local.c.nsx], local.hosts, local.edges)
     destination_groups = concat([local.c.nsx], local.hosts, local.edges)
-    services           = [local.svc["https"], local.svc["nsx_rpc"], local.svc["amqps"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["TCP-1234_1235"], var.service_paths["TCP-5671"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -150,7 +150,7 @@ resource "nsxt_policy_security_policy" "nsx" {
     display_name       = "vCenter to NSX Manager"
     source_groups      = local.vcs
     destination_groups = [local.c.nsx]
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -159,7 +159,7 @@ resource "nsxt_policy_security_policy" "nsx" {
     display_name       = "NSX Manager to vCenter"
     source_groups      = [local.c.nsx]
     destination_groups = local.vcs
-    services           = [local.svc["https"], local.svc["http"], local.svc["vum_update"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["HTTP"], var.service_paths["Vmware-UpdateMgr-update"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -170,7 +170,7 @@ resource "nsxt_policy_security_policy" "nsx" {
       display_name       = "Avi to NSX Manager"
       source_groups      = [rule.value]
       destination_groups = [local.c.nsx]
-      services           = [local.svc["https"]]
+      services           = [var.service_paths["HTTPS"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -182,7 +182,7 @@ resource "nsxt_policy_security_policy" "nsx" {
       display_name       = "SSP to NSX Manager"
       source_groups      = [rule.value]
       destination_groups = [local.c.nsx]
-      services           = [local.svc["https"]]
+      services           = [var.service_paths["HTTPS"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -195,7 +195,7 @@ resource "nsxt_policy_security_policy" "nsx" {
       display_name       = "NSX Manager to SSP Ingestion"
       source_groups      = [local.c.nsx]
       destination_groups = [rule.value]
-      services           = [local.svc["https"], local.svc["messaging"]]
+      services           = [var.service_paths["HTTPS"], var.service_paths["TCP-9092"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -207,7 +207,7 @@ resource "nsxt_policy_security_policy" "nsx" {
       display_name       = "Supervisor to NSX Manager"
       source_groups      = local.sups
       destination_groups = [local.c.nsx]
-      services           = [local.svc["https"]]
+      services           = [var.service_paths["HTTPS"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -247,7 +247,7 @@ resource "nsxt_policy_security_policy" "avi" {
     display_name       = "Avi to ${local.label}"
     source_groups      = [local.c.avi]
     destination_groups = concat(local.vcs, [local.c.nsx], local.hosts)
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -258,7 +258,7 @@ resource "nsxt_policy_security_policy" "avi" {
       display_name       = "Avi to and from Service Engine Management"
       source_groups      = concat([local.c.avi], local.avi_ses)
       destination_groups = concat([local.c.avi], local.avi_ses)
-      services           = [local.svc["ssh"], local.svc["avi_mgmt"]]
+      services           = [var.service_paths["SSH"], var.service_paths["TCP-8443"]]
       action             = "ALLOW"
       logged             = false
     }
@@ -290,7 +290,7 @@ resource "nsxt_policy_security_policy" "ssp" {
     display_name       = "SSP to vCenter and NSX Manager"
     source_groups      = [local.c.ssp]
     destination_groups = concat(local.vcs, [local.c.nsx])
-    services           = [local.svc["https"]]
+    services           = [var.service_paths["HTTPS"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -299,7 +299,7 @@ resource "nsxt_policy_security_policy" "ssp" {
     display_name       = "SSP Ingestion"
     source_groups      = concat([local.c.nsx], local.hosts, local.edges)
     destination_groups = [local.c.ssp_svc]
-    services           = [local.svc["https"], local.svc["messaging"]]
+    services           = [var.service_paths["HTTPS"], var.service_paths["TCP-9092"]]
     action             = "ALLOW"
     logged             = false
   }
@@ -316,7 +316,7 @@ resource "nsxt_policy_security_policy" "ssp" {
   rule {
     display_name  = "SSP Feeds"
     source_groups = [local.c.ssp]
-    services      = [local.svc["https"]]
+    services      = [var.service_paths["HTTPS"]]
     action        = "ALLOW"
     direction     = "OUT"
     logged        = false

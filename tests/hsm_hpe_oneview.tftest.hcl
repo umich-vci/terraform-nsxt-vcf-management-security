@@ -22,8 +22,12 @@ override_resource {
 
 variables {
   service_paths = {
-    https     = "/infra/services/HTTPS", http = "/infra/services/HTTP", ssh = "/infra/services/SSH",
-    cim_https = "/infra/services/CIM-HTTPS", amqps = "/infra/services/TCP-5671", tcp_3512 = "/infra/services/TCP-3512"
+    "HTTPS"     = "/infra/services/HTTPS"
+    "HTTP"      = "/infra/services/HTTP"
+    "SSH"       = "/infra/services/SSH"
+    "CIM-HTTPS" = "/infra/services/CIM-HTTPS"
+    "TCP-5671"  = "/infra/services/TCP-5671"
+    "TCP-3512"  = "/infra/services/TCP-3512"
   }
   bastion = "/infra/domains/default/groups/BASTION"
   hsms = {

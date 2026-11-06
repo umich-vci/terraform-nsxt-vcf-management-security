@@ -50,15 +50,33 @@ variables {
     log_archive = "/infra/domains/default/groups/LOG_ARCHIVE_SVC"
   }
   service_paths = {
-    https        = "/infra/services/HTTPS", ssh = "/infra/services/SSH", rdp = "/infra/services/RDP", ftp = "/infra/services/FTP",
-    http         = "/infra/services/HTTP", icmp_all = "/infra/services/ICMP-ALL", icmp_echo = "/infra/services/ICMP-Echo", smtp = "/infra/services/SMTP",
-    smtp_tls     = "/infra/services/SMTP_TLS", dns_tcp = "/infra/services/DNS-TCP", dns_udp = "/infra/services/DNS-UDP",
-    ntp          = "/infra/services/NTP", dhcp_server = "/infra/services/DHCP-Server", ad = "/infra/services/AD",
-    syslog_tcp   = "/infra/services/Syslog-TCP", syslog_udp = "/infra/services/Syslog-UDP", vami = "/infra/services/TCP-5480",
-    salt         = "/infra/services/TCP-4505_4506", syslog_tls = "/infra/services/TCP-1514", log_api = "/infra/services/TCP-9543",
-    ops_networks = "/infra/services/TCP-1991", netflow = "/infra/services/UDP-2055", nfs = "/infra/services/NFS-TCP",
-    iscsi        = "/infra/services/iSCSI", messaging = "/infra/services/TCP-9092", k8s_api = "/infra/services/TCP-6443",
-    ops_lcm      = "/infra/services/TCP-30000_30005"
+    "HTTPS"                         = "/infra/services/HTTPS"
+    "SSH"                           = "/infra/services/SSH"
+    "RDP"                           = "/infra/services/RDP"
+    "FTP"                           = "/infra/services/FTP"
+    "HTTP"                          = "/infra/services/HTTP"
+    "ICMP ALL"                      = "/infra/services/ICMP-ALL"
+    "ICMP Echo Request"             = "/infra/services/ICMP-Echo"
+    "SMTP"                          = "/infra/services/SMTP"
+    "SMTP_TLS"                      = "/infra/services/SMTP_TLS"
+    "DNS-TCP"                       = "/infra/services/DNS-TCP"
+    "DNS-UDP"                       = "/infra/services/DNS-UDP"
+    "NTP"                           = "/infra/services/NTP"
+    "DHCP-Server"                   = "/infra/services/DHCP-Server"
+    "Microsoft Active Directory V1" = "/infra/services/AD"
+    "Syslog (TCP)"                  = "/infra/services/Syslog-TCP"
+    "Syslog (UDP)"                  = "/infra/services/Syslog-UDP"
+    "TCP-5480"                      = "/infra/services/TCP-5480"
+    "TCP-4505_4506"                 = "/infra/services/TCP-4505_4506"
+    "TCP-1514"                      = "/infra/services/TCP-1514"
+    "TCP-9543"                      = "/infra/services/TCP-9543"
+    "TCP-1991"                      = "/infra/services/TCP-1991"
+    "UDP-2055"                      = "/infra/services/UDP-2055"
+    "NFS (TCP)"                     = "/infra/services/NFS-TCP"
+    "VMware-iSCSI-Server"           = "/infra/services/iSCSI"
+    "TCP-9092"                      = "/infra/services/TCP-9092"
+    "TCP-6443"                      = "/infra/services/TCP-6443"
+    "TCP-30000_30005"               = "/infra/services/TCP-30000_30005"
   }
   context_profile_paths = {
     dns            = "/infra/context-profiles/DNS"

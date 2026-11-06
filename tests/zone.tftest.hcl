@@ -42,16 +42,34 @@ variables {
     ssp_installer  = "/infra/domains/default/groups/VCF01_SSPI01"
   }
   service_paths = {
-    https        = "/infra/services/HTTPS", http = "/infra/services/HTTP", ssh = "/infra/services/SSH",
-    icmp_all     = "/infra/services/ICMP-ALL", icmp_echo = "/infra/services/ICMP-Echo", vami = "/infra/services/TCP-5480",
-    salt         = "/infra/services/TCP-4505_4506", syslog_tcp = "/infra/services/Syslog-TCP",
-    syslog_udp   = "/infra/services/Syslog-UDP", syslog_tls = "/infra/services/TCP-1514", log_api = "/infra/services/TCP-9543",
-    ops_networks = "/infra/services/TCP-1991", netflow = "/infra/services/UDP-2055", nfs = "/infra/services/NFS-TCP",
-    iscsi        = "/infra/services/iSCSI", messaging = "/infra/services/TCP-9092", k8s_api = "/infra/services/TCP-6443",
-    update_mgr   = "/infra/services/Update-Manager", iofilter = "/infra/services/TCP-1443", vum = "/infra/services/VUM",
-    vum_update   = "/infra/services/VUM-update", esxi_udp = "/infra/services/ESXi-UDP", dump_coll = "/infra/services/TCP-6500",
-    auto_deploy  = "/infra/services/TCP-6501_6502", auth_proxy = "/infra/services/TCP-7475_7476",
-    nsx_rpc      = "/infra/services/TCP-1234_1235", amqps = "/infra/services/TCP-5671", avi_mgmt = "/infra/services/TCP-8443"
+    "HTTPS"                   = "/infra/services/HTTPS"
+    "HTTP"                    = "/infra/services/HTTP"
+    "SSH"                     = "/infra/services/SSH"
+    "ICMP ALL"                = "/infra/services/ICMP-ALL"
+    "ICMP Echo Request"       = "/infra/services/ICMP-Echo"
+    "TCP-5480"                = "/infra/services/TCP-5480"
+    "TCP-4505_4506"           = "/infra/services/TCP-4505_4506"
+    "Syslog (TCP)"            = "/infra/services/Syslog-TCP"
+    "Syslog (UDP)"            = "/infra/services/Syslog-UDP"
+    "TCP-1514"                = "/infra/services/TCP-1514"
+    "TCP-9543"                = "/infra/services/TCP-9543"
+    "TCP-1991"                = "/infra/services/TCP-1991"
+    "UDP-2055"                = "/infra/services/UDP-2055"
+    "NFS (TCP)"               = "/infra/services/NFS-TCP"
+    "VMware-iSCSI-Server"     = "/infra/services/iSCSI"
+    "TCP-9092"                = "/infra/services/TCP-9092"
+    "TCP-6443"                = "/infra/services/TCP-6443"
+    "Update Manager"          = "/infra/services/Update-Manager"
+    "TCP-1443"                = "/infra/services/TCP-1443"
+    "VMware-UpdateMgr-VUM"    = "/infra/services/VUM"
+    "Vmware-UpdateMgr-update" = "/infra/services/VUM-update"
+    "VMware-ESXi5.x-UDP"      = "/infra/services/ESXi-UDP"
+    "TCP-6500"                = "/infra/services/TCP-6500"
+    "TCP-6501_6502"           = "/infra/services/TCP-6501_6502"
+    "TCP-7475_7476"           = "/infra/services/TCP-7475_7476"
+    "TCP-1234_1235"           = "/infra/services/TCP-1234_1235"
+    "TCP-5671"                = "/infra/services/TCP-5671"
+    "TCP-8443"                = "/infra/services/TCP-8443"
   }
   sequence_number             = 4
   application_sequence_number = 110

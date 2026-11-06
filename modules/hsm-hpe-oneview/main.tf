@@ -7,21 +7,19 @@
 # in the VCF Fleet Policy. The appliance group joins VCF_FLEET.
 
 locals {
-  svc = var.service_paths
-
   rules_by_hsm = {
     for k, h in var.hsms : k => [
       for r in [
         # Enforced at the vCenters, so these apply to an HSM given only by IP as well.
-        { name = "vCenters to HSM ${upper(k)}", src = h.vcs, dst = [nsxt_policy_group.appliance[k].path], svc = [local.svc["https"], local.svc["tcp_3512"]], dir = "IN_OUT", vm = false },
-        { name = "HSM ${upper(k)} to vCenters", src = [nsxt_policy_group.appliance[k].path], dst = h.vcs, svc = [local.svc["https"]], dir = "IN_OUT", vm = false },
+        { name = "vCenters to HSM ${upper(k)}", src = h.vcs, dst = [nsxt_policy_group.appliance[k].path], svc = [var.service_paths["HTTPS"], var.service_paths["TCP-3512"]], dir = "IN_OUT", vm = false },
+        { name = "HSM ${upper(k)} to vCenters", src = [nsxt_policy_group.appliance[k].path], dst = h.vcs, svc = [var.service_paths["HTTPS"]], dir = "IN_OUT", vm = false },
         # The far end of these is not DFW-protected (IP groups, ESX vmkernel), so they only take effect
         # at an appliance VM.
-        { name = "HSM ${upper(k)} to OneView", src = [nsxt_policy_group.appliance[k].path], dst = try([nsxt_policy_group.oneview[k].path], []), svc = [local.svc["https"], local.svc["amqps"]], dir = "IN_OUT", vm = true },
-        { name = "HSM ${upper(k)} to iLOs", src = [nsxt_policy_group.appliance[k].path], dst = try([nsxt_policy_group.ilo[k].path], []), svc = [local.svc["http"], local.svc["https"]], dir = "IN_OUT", vm = true },
-        { name = "iLOs to HSM ${upper(k)}", src = try([nsxt_policy_group.ilo[k].path], []), dst = [nsxt_policy_group.appliance[k].path], svc = [local.svc["https"], local.svc["tcp_3512"]], dir = "IN", vm = true },
-        { name = "HSM ${upper(k)} to ESX hosts", src = [nsxt_policy_group.appliance[k].path], dst = h.hosts, svc = [local.svc["https"], local.svc["ssh"], local.svc["cim_https"]], dir = "IN_OUT", vm = true },
-        { name = "Bastion to HSM ${upper(k)}", src = [var.bastion], dst = [nsxt_policy_group.appliance[k].path], svc = [local.svc["tcp_3512"]], dir = "IN", vm = true },
+        { name = "HSM ${upper(k)} to OneView", src = [nsxt_policy_group.appliance[k].path], dst = try([nsxt_policy_group.oneview[k].path], []), svc = [var.service_paths["HTTPS"], var.service_paths["TCP-5671"]], dir = "IN_OUT", vm = true },
+        { name = "HSM ${upper(k)} to iLOs", src = [nsxt_policy_group.appliance[k].path], dst = try([nsxt_policy_group.ilo[k].path], []), svc = [var.service_paths["HTTP"], var.service_paths["HTTPS"]], dir = "IN_OUT", vm = true },
+        { name = "iLOs to HSM ${upper(k)}", src = try([nsxt_policy_group.ilo[k].path], []), dst = [nsxt_policy_group.appliance[k].path], svc = [var.service_paths["HTTPS"], var.service_paths["TCP-3512"]], dir = "IN", vm = true },
+        { name = "HSM ${upper(k)} to ESX hosts", src = [nsxt_policy_group.appliance[k].path], dst = h.hosts, svc = [var.service_paths["HTTPS"], var.service_paths["SSH"], var.service_paths["CIM-HTTPS"]], dir = "IN_OUT", vm = true },
+        { name = "Bastion to HSM ${upper(k)}", src = [var.bastion], dst = [nsxt_policy_group.appliance[k].path], svc = [var.service_paths["TCP-3512"]], dir = "IN", vm = true },
         ] : {
         display_name       = r.name
         source_groups      = r.src

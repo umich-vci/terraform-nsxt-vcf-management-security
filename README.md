@@ -222,9 +222,12 @@ To stay within NSX's 255-character display-name limit:
 Policy names follow the guide: the 9.1 Environment policies, and the 9.0 Application policies.
 Lockdown rules are named "`<policy>` Lockdown".
 
-Services use NSX built-ins wherever one exists. They are found with a single `nsxt_policy_services`
-lookup, and planning fails with a list of names if a built-in is missing. Ports without a built-in
-are created as custom services.
+Services use NSX built-ins wherever one exists. Ports without a built-in are created as custom
+services, named `<protocol>-<port>` (e.g. `TCP-5480`). Rules find both kinds by display name in a single
+`nsxt_policy_services` lookup, so a display name the lookup lacks fails with an invalid-index error.
+That lookup depends on the custom services, so when one of them changes it is read at apply time, and
+the plan shows every policy's services as known after apply. Don't create other NSX services with the
+same display names as this module's custom services.
 
 ## Rollout
 

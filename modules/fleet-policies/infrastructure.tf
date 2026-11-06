@@ -11,7 +11,7 @@ resource "nsxt_policy_security_policy" "infrastructure" {
   rule {
     display_name       = "VCF Fleet DNS Traffic"
     destination_groups = [local.ext.dns]
-    services           = [local.svc["dns_udp"], local.svc["dns_tcp"]]
+    services           = [var.service_paths["DNS-UDP"], var.service_paths["DNS-TCP"]]
     profiles           = [var.context_profile_paths.dns]
     action             = "ALLOW"
     direction          = "OUT"
@@ -21,7 +21,7 @@ resource "nsxt_policy_security_policy" "infrastructure" {
   rule {
     display_name       = "VCF Fleet NTP Traffic"
     destination_groups = [local.ext.ntp]
-    services           = [local.svc["ntp"]]
+    services           = [var.service_paths["NTP"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -30,7 +30,7 @@ resource "nsxt_policy_security_policy" "infrastructure" {
   rule {
     display_name       = "VCF Fleet DHCP Traffic"
     destination_groups = [local.ext.dhcp]
-    services           = [local.svc["dhcp_server"]]
+    services           = [var.service_paths["DHCP-Server"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -39,7 +39,7 @@ resource "nsxt_policy_security_policy" "infrastructure" {
   rule {
     display_name       = "VCF Fleet AD Traffic"
     destination_groups = [local.ext.ad]
-    services           = [local.svc["ad"]]
+    services           = [var.service_paths["Microsoft Active Directory V1"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -50,7 +50,7 @@ resource "nsxt_policy_security_policy" "infrastructure" {
   rule {
     display_name       = "VCF Fleet Syslog Traffic"
     destination_groups = [local.ext.syslog, local.ext.siem, local.fleet.msvc]
-    services           = [local.svc["syslog_tcp"], local.svc["syslog_udp"], local.svc["log_api"]]
+    services           = [var.service_paths["Syslog (TCP)"], var.service_paths["Syslog (UDP)"], var.service_paths["TCP-9543"]]
     action             = "ALLOW"
     direction          = "OUT"
     logged             = false
@@ -59,8 +59,8 @@ resource "nsxt_policy_security_policy" "infrastructure" {
   rule {
     display_name = "VCF Fleet Infrastructure Lockdown"
     services = [
-      local.svc["dns_udp"], local.svc["dns_tcp"], local.svc["ntp"], local.svc["dhcp_server"],
-      local.svc["syslog_tcp"], local.svc["syslog_udp"], local.svc["log_api"],
+      var.service_paths["DNS-UDP"], var.service_paths["DNS-TCP"], var.service_paths["NTP"], var.service_paths["DHCP-Server"],
+      var.service_paths["Syslog (TCP)"], var.service_paths["Syslog (UDP)"], var.service_paths["TCP-9543"],
     ]
     action    = var.lockdown_action
     direction = "OUT"
