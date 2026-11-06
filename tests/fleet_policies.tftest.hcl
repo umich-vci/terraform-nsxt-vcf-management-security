@@ -51,7 +51,7 @@ variables {
   }
   service_paths = {
     https        = "/infra/services/HTTPS", ssh = "/infra/services/SSH", rdp = "/infra/services/RDP", ftp = "/infra/services/FTP",
-    icmp_all     = "/infra/services/ICMP-ALL", icmp_echo = "/infra/services/ICMP-Echo", smtp = "/infra/services/SMTP",
+    http         = "/infra/services/HTTP", icmp_all = "/infra/services/ICMP-ALL", icmp_echo = "/infra/services/ICMP-Echo", smtp = "/infra/services/SMTP",
     smtp_tls     = "/infra/services/SMTP_TLS", dns_tcp = "/infra/services/DNS-TCP", dns_udp = "/infra/services/DNS-UDP",
     ntp          = "/infra/services/NTP", dhcp_server = "/infra/services/DHCP-Server", ad = "/infra/services/AD",
     syslog_tcp   = "/infra/services/Syslog-TCP", syslog_udp = "/infra/services/Syslog-UDP", vami = "/infra/services/TCP-5480",
@@ -169,42 +169,48 @@ run "hardware_support_managers" {
   }
 
   variables {
-    hardware_support_managers = {
-      oneview = {
-        group         = "/infra/domains/default/groups/HSM_ONEVIEW"
-        vcs           = ["/infra/domains/default/groups/M01_VC", "/infra/domains/default/groups/W01_VC"]
-        to_services   = ["/infra/services/HTTPS"]
-        from_services = ["/infra/services/HTTPS", "/infra/services/UDP-162"]
-      }
-      ome = {
-        group         = "/infra/domains/default/groups/HSM_OME"
-        vcs           = ["/infra/domains/default/groups/W02_VC"]
-        to_services   = ["/infra/services/HTTPS"]
-        from_services = []
-      }
-    }
+    hsm_group_paths = ["/infra/domains/default/groups/HSM_OV01"]
+    hsm_rules = [
+      {
+        display_name       = "vCenters to HSM OV01"
+        source_groups      = ["/infra/domains/default/groups/M01_VC"]
+        destination_groups = ["/infra/domains/default/groups/HSM_OV01"]
+        services           = ["/infra/services/HTTPS", "/infra/services/TCP-3512"]
+        direction          = "IN_OUT"
+      },
+      {
+        display_name       = "iLOs to HSM OV01"
+        source_groups      = ["/infra/domains/default/groups/HSM_OV01_ILO"]
+        destination_groups = ["/infra/domains/default/groups/HSM_OV01"]
+        services           = ["/infra/services/HTTPS", "/infra/services/TCP-3512"]
+        direction          = "IN"
+      },
+      {
+        display_name       = "Empty peer"
+        source_groups      = []
+        destination_groups = ["/infra/domains/default/groups/HSM_OV01"]
+        services           = ["/infra/services/HTTPS"]
+        direction          = "IN"
+      },
+    ]
   }
 
   assert {
     condition = toset(one(nsxt_policy_group.vcf_fleet.criteria).path_expression[0].member_paths) == toset([
       "/infra/domains/default/groups/VCF_FM", "/infra/domains/default/groups/VCF01_M01", "/infra/domains/default/groups/VCF01_W01",
-      "/infra/domains/default/groups/HSM_ONEVIEW", "/infra/domains/default/groups/HSM_OME",
+      "/infra/domains/default/groups/HSM_OV01",
     ])
-    error_message = "HSM groups should join VCF_FLEET so the Infrastructure and Fleet rules apply to them."
+    error_message = "HSM appliance groups should join VCF_FLEET."
   }
   assert {
     condition = length([
-      for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "vCenters to HSM ONEVIEW" &&
-      r.source_groups == toset(["/infra/domains/default/groups/M01_VC", "/infra/domains/default/groups/W01_VC"]) &&
-      r.destination_groups == toset(["/infra/domains/default/groups/HSM_ONEVIEW"]) && r.direction == "IN_OUT"
-    ]) == 1
-    error_message = "vCenter-to-HSM rules should run from the selected vCenters to the HSM, enforced at both ends."
+      for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "iLOs to HSM OV01" && r.direction == "IN" &&
+      r.source_groups == toset(["/infra/domains/default/groups/HSM_OV01_ILO"]) && r.action == "ALLOW"
+    ]) == 1 && length([for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "vCenters to HSM OV01"]) == 1
+    error_message = "HSM rules should be placed in the VCF Fleet Policy as given."
   }
   assert {
-    condition = length([
-      for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "HSM ONEVIEW to vCenters" &&
-      r.services == toset(["/infra/services/HTTPS", "/infra/services/UDP-162"])
-    ]) == 1 && length([for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "HSM OME to vCenters"]) == 0
-    error_message = "HSM-to-vCenter rules should use from_services and be skipped when it is empty."
+    condition     = length([for r in nsxt_policy_security_policy.fleet.rule : r if r.display_name == "Empty peer"]) == 0
+    error_message = "A rule with an empty side would match any, so it should be skipped."
   }
 }

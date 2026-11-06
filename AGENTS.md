@@ -37,13 +37,13 @@ terraform-docs markdown table --output-file README.md --output-mode inject .
 ## Layout and data flow
 
 ```
-common               services (built-in lookup + custom), context profiles, external/infra IP groups,
-                     HSM_<KEY> groups
+common               services (built-in lookup + custom), context profiles, external/infra IP groups
 fleet-management     fleet component VM tags and groups, VCF_FM
 nsx-manager-cluster  per NSX Manager cluster: <C>_NSX, <C>_AVI, <C>_SSP, <C>_SSP_SVC
 domain               per domain: <D>_VC, <D>_HOSTS, <D>_EDGE, <D>_SUP, <D>_AVI_SE
 zone                 per NSX Manager cluster: zone group, Environment policy, vCenter/NSX/Avi/SSP
                      Application policies
+hsm-hpe-oneview      per HPE OneView HSM: HSM_<KEY>, HSM_<KEY>_OV, HSM_<KEY>_ILO; its Fleet rules
 fleet-policies       VCF_FLEET; Fleet, Fleet Management, Infrastructure and fleet Application policies
 ```
 
@@ -70,8 +70,15 @@ instance of the same call.
   - empty IP lists give empty groups.
 - **Services:** use NSX built-in services wherever one matches the protocol and port exactly,
   through the single `nsxt_policy_services` lookup in `modules/common`. Create custom services only
-  for ports with no built-in. Check direction and protocol against ports.broadcom.com: a built-in
-  describes the server side.
+  for ports with no built-in, each covering one port or one contiguous range (e.g. TCP/4505-4506).
+  Don't combine unrelated ports such as 22 and 443 into one custom service without explicit
+  confirmation; built-ins may cover several. Check direction and protocol against
+  ports.broadcom.com: a built-in describes the server side.
+- **Hardware Support Managers:** one root input and one module per vendor (`hpe_oneview_hsms`,
+  `modules/hsm-hpe-oneview`). A vendor module creates its groups and returns its appliance groups
+  (which join `VCF_FLEET`) and a vendor-neutral rule list that fleet-policies places in the VCF
+  Fleet Policy. Ports come from the vendor's documentation, cited in the module. Keep `HSM_<KEY>`
+  unique across vendor inputs.
 - **VM tags:** `nsxt_policy_vm_tags` owns a VM's entire tag set. Only fleet management components
   are tagged, and no VM may be matched by two lookups. Group shared components by VM name and
   nest them; don't tag them.

@@ -25,6 +25,7 @@ locals {
     vum         = "VMware-UpdateMgr-VUM"
     vum_update  = "Vmware-UpdateMgr-update"
     esxi_udp    = "VMware-ESXi5.x-UDP"
+    cim_https   = "CIM-HTTPS"
   }
 
   # Ports used by the design that have no built-in NSX service. TCP/5480 matches only the built-in
@@ -43,15 +44,22 @@ locals {
     auto_deploy  = { description = "vSphere Auto Deploy", protocol = "TCP", ports = ["6501-6502"] }
     auth_proxy   = { description = "vSphere Authentication Proxy", protocol = "TCP", ports = ["7475-7476"] }
     nsx_rpc      = { description = "NSX transport node messaging", protocol = "TCP", ports = ["1234-1235"] }
-    nsx_amqp     = { description = "NSX transport node messaging (AMQP)", protocol = "TCP", ports = ["5671"] }
+    amqps        = { description = "AMQP over TLS", protocol = "TCP", ports = ["5671"] }
     avi_mgmt     = { description = "Avi controller and Service Engine management", protocol = "TCP", ports = ["8443"] }
     ops_lcm      = { description = "VCF Operations fleet management to VCF Automation", protocol = "TCP", ports = ["30000-30005"] }
+    tcp_3512     = { description = "TCP-3512", protocol = "TCP", ports = ["3512"] }
   }
 
   missing_builtin_services = [
     for name in values(local.builtin_services) : name
     if !contains(keys(data.nsxt_policy_services.all.items), name)
   ]
+}
+
+# Renamed from nsx_amqp: the service also carries HPE OneView SCMB.
+moved {
+  from = nsxt_policy_service.custom["nsx_amqp"]
+  to   = nsxt_policy_service.custom["amqps"]
 }
 
 resource "nsxt_policy_service" "custom" {

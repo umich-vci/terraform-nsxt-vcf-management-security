@@ -80,15 +80,14 @@ workload_domains = {
   }
 }
 
-# vSphere Lifecycle Manager Hardware Support Managers (not part of the design guide). vm_name matches
-# VMs on this NSX Manager; use ips for an HSM anywhere else. to_hsm and from_hsm are NSX service
-# paths and depend on the vendor; to_hsm defaults to the built-in HTTPS and from_hsm to none.
-hardware_support_managers = {
-  oneview = {
-    vm_name  = "m01-hsm01"
-    domains  = ["m01", "w01"]
-    to_hsm   = ["/infra/services/HTTPS"]
-    from_hsm = ["/infra/services/HTTPS"]
+# HPE OneView for VMware vCenter, the vSphere Lifecycle Manager Hardware Support Manager (not part of
+# the design guide). vm_name matches VMs on this NSX Manager; use ips for an appliance anywhere else.
+hpe_oneview_hsms = {
+  ov01 = {
+    vm_name = "m01-hsm01"
+    domains = ["m01", "w01"]
+    oneview = ["192.0.2.70"]
+    ilo     = ["192.0.2.0/26"]
   }
 }
 

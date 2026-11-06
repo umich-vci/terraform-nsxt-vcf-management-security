@@ -37,14 +37,7 @@ output "policy_paths" {
   )
 }
 
-output "hardware_support_managers" {
-  description = "Per Hardware Support Manager: its group path, the vCenter groups allowed to and from it, and the services each way."
-  value = {
-    for k, h in var.hardware_support_managers : k => {
-      group          = module.common.hsm_group_paths[k]
-      vcenter_groups = [for d in distinct(h.domains) : module.domain[d].group_paths.vc]
-      to_services    = h.to_hsm == null ? [module.common.service_paths["https"]] : h.to_hsm
-      from_services  = h.from_hsm
-    }
-  }
+output "hpe_oneview_hsms" {
+  description = "Per HPE OneView for VMware vCenter appliance: its group path, its OneView and iLO group paths (null when not given), and the names of its rules in the VCF Fleet Policy."
+  value       = module.hsm_hpe_oneview.hsms
 }

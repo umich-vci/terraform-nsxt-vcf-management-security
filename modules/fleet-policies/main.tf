@@ -19,7 +19,7 @@ resource "nsxt_policy_group" "vcf_fleet" {
 
   criteria {
     path_expression {
-      member_paths = concat([local.fleet.vcf_fm], local.zone_paths, [for h in var.hardware_support_managers : h.group])
+      member_paths = concat([local.fleet.vcf_fm], local.zone_paths, var.hsm_group_paths)
     }
   }
 }

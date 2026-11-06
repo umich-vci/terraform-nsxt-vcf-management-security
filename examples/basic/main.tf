@@ -31,7 +31,7 @@ module "vcf_management_security" {
   workload_domains     = var.workload_domains
   lockdown_action      = var.lockdown_action
 
-  hardware_support_managers = var.hardware_support_managers
+  hpe_oneview_hsms = var.hpe_oneview_hsms
 
   application_lockdown_action = var.application_lockdown_action
 }

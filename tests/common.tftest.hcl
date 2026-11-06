@@ -26,6 +26,7 @@ mock_provider "nsxt" {
         "VMware-UpdateMgr-VUM"          = "/infra/services/VUM"
         "Vmware-UpdateMgr-update"       = "/infra/services/VUM-update"
         "VMware-ESXi5.x-UDP"            = "/infra/services/ESXi-UDP"
+        "CIM-HTTPS"                     = "/infra/services/CIM-HTTPS"
       }
     }
   }
@@ -85,43 +86,21 @@ run "missing_builtin_service" {
   expect_failures = [output.service_paths]
 }
 
-run "hardware_support_managers" {
+run "custom_services" {
   module {
     source = "./modules/common"
   }
 
-  variables {
-    hardware_support_managers = {
-      oneview = { vm_name = "m01-hsm01" }
-      ome     = { ips = ["198.51.100.70"] }
-      both    = { vm_name = "m01-hsm02", ips = ["198.51.100.71"] }
-    }
-  }
-
   assert {
-    condition = (
-      nsxt_policy_group.hsm["oneview"].nsx_id == "HSM_ONEVIEW" && length(nsxt_policy_group.hsm["oneview"].criteria) == 1 &&
-      one(nsxt_policy_group.hsm["oneview"].criteria[0].condition).value == "m01-hsm01" &&
-      one(nsxt_policy_group.hsm["oneview"].criteria[0].condition).operator == "EQUALS"
-    )
-    error_message = "Each HSM should get a group matching its exact VM name."
+    condition     = nsxt_policy_service.custom["amqps"].display_name == "TCP-5671" && nsxt_policy_service.custom["amqps"].description == "AMQP over TLS"
+    error_message = "TCP/5671 should be the generic amqps service."
   }
   assert {
-    condition = (
-      length(nsxt_policy_group.hsm["ome"].criteria) == 1 && length(nsxt_policy_group.hsm["ome"].conjunction) == 0 &&
-      one(nsxt_policy_group.hsm["ome"].criteria[0].ipaddress_expression).ip_addresses == toset(["198.51.100.70"])
-    )
-    error_message = "An HSM given only IPs should get a single IP criterion."
+    condition     = nsxt_policy_service.custom["tcp_3512"].display_name == "TCP-3512" && nsxt_policy_service.custom["tcp_3512"].description == "TCP-3512"
+    error_message = "TCP/3512 should be a generic custom service."
   }
   assert {
-    condition = (
-      length(nsxt_policy_group.hsm["both"].criteria) == 2 && nsxt_policy_group.hsm["both"].conjunction[0].operator == "OR" &&
-      one(nsxt_policy_group.hsm["both"].criteria[0].condition).value == "m01-hsm02"
-    )
-    error_message = "An HSM given a VM name and IPs should match either."
-  }
-  assert {
-    condition     = length(nsxt_policy_service.custom) == length(local.custom_services) && !contains(keys(output.service_paths), "vc_db")
-    error_message = "HSMs should create no services, and the TCP/5432 vc_db service should be gone."
+    condition     = !contains(keys(output.service_paths), "nsx_amqp") && !contains(keys(output.service_paths), "vc_db") && output.service_paths["cim_https"] == "/infra/services/CIM-HTTPS"
+    error_message = "nsx_amqp and vc_db should be gone, and CIM-HTTPS should come from the built-in lookup."
   }
 }

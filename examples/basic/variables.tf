@@ -46,10 +46,10 @@ variable "workload_domains" {
   description = "See the module's workload_domains input."
 }
 
-variable "hardware_support_managers" {
+variable "hpe_oneview_hsms" {
   type        = any
   default     = {}
-  description = "See the module's hardware_support_managers input."
+  description = "See the module's hpe_oneview_hsms input."
 }
 
 variable "application_lockdown_action" {

@@ -210,51 +210,40 @@ variable "workload_domains" {
   }
 }
 
-variable "hardware_support_managers" {
+variable "hpe_oneview_hsms" {
   type = map(object({
-    vm_name  = optional(string)
-    ips      = optional(list(string), [])
-    domains  = list(string)
-    to_hsm   = optional(list(string))
-    from_hsm = optional(list(string), [])
+    vm_name = optional(string)
+    ips     = optional(list(string), [])
+    domains = list(string)
+    oneview = optional(list(string), [])
+    ilo     = optional(list(string), [])
   }))
   default     = {}
   description = <<-EOT
-    vSphere Lifecycle Manager Hardware Support Managers (e.g. HPE OneView, Dell OpenManage) running as
-    VMs or appliances, by key. Not part of the design guide. `vm_name` is the exact VM name and `ips`
-    its IP addresses, ranges or CIDRs; give either or both. `vm_name` only matches VMs in the
-    inventory of the NSX Manager this module runs against (the management domain's); use `ips` for
-    an HSM anywhere else. HSMs join VCF_FLEET, and the VCF Fleet Policy allows them to and from
-    their vCenters. `domains` lists the domain keys whose vCenter uses the HSM. `to_hsm` and
-    `from_hsm` are NSX service paths (e.g. "/infra/services/HTTPS"): what the vCenters open to the
-    HSM (default: the built-in HTTPS, as ports.broadcom.com lists) and what the HSM opens to the
-    vCenters (default: none). The ports depend on the vendor; create any custom services yourself.
+    HPE OneView for VMware vCenter appliances, the vSphere Lifecycle Manager Hardware Support Manager
+    for HPE servers, by key. Not part of the design guide. `vm_name` is the appliance's exact VM name
+    and `ips` its IP addresses, ranges or CIDRs; give either or both. `vm_name` only matches VMs this
+    NSX Manager knows; use `ips` for an appliance anywhere else. `domains` lists the domain keys whose
+    vCenter uses it. `oneview` lists the OneView appliances or Synergy Composers it manages and `ilo`
+    the iLOs, as IP addresses, ranges or CIDRs. An appliance given only by `ips` gets just the
+    vCenter rules; the rules to OneView, the iLOs, the ESX hosts and from the bastion need `vm_name`.
   EOT
 
   validation {
     condition = alltrue([
-      for k, h in var.hardware_support_managers :
+      for k, h in var.hpe_oneview_hsms :
       can(regex("^[a-z0-9][a-z0-9_-]{0,31}$", k)) && length(h.domains) > 0 && (length(h.vm_name == null ? "" : h.vm_name) > 0 || length(h.ips) > 0)
     ])
-    error_message = "Hardware Support Manager keys must be at most 32 lower-case letters, digits, '-' or '_'; each needs domains and a vm_name or ips."
+    error_message = "hpe_oneview_hsms keys must be at most 32 lower-case letters, digits, '-' or '_'; each needs domains and a vm_name or ips."
   }
 
   validation {
     condition = alltrue(flatten([
-      for h in var.hardware_support_managers : [
-        for p in concat(coalesce(h.to_hsm, []), h.from_hsm) : can(regex("^/.*/services/[^/]+$", p))
-      ]
-    ]))
-    error_message = "hardware_support_managers[*].to_hsm and from_hsm must be NSX service paths, such as \"/infra/services/HTTPS\"."
-  }
-
-  validation {
-    condition = alltrue(flatten([
-      for h in var.hardware_support_managers : [
+      for h in var.hpe_oneview_hsms : [
         for d in h.domains : d == var.management_domain.name || contains(keys(var.workload_domains), d)
       ]
     ]))
-    error_message = "hardware_support_managers[*].domains must be the management domain name or workload domain keys."
+    error_message = "hpe_oneview_hsms[*].domains must be the management domain name or workload domain keys."
   }
 }
 

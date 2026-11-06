@@ -141,7 +141,7 @@ resource "nsxt_policy_security_policy" "nsx" {
     display_name       = "NSX Transport Node Messaging"
     source_groups      = concat([local.c.nsx], local.hosts, local.edges)
     destination_groups = concat([local.c.nsx], local.hosts, local.edges)
-    services           = [local.svc["https"], local.svc["nsx_rpc"], local.svc["nsx_amqp"]]
+    services           = [local.svc["https"], local.svc["nsx_rpc"], local.svc["amqps"]]
     action             = "ALLOW"
     logged             = false
   }

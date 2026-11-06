@@ -51,7 +51,7 @@ variables {
     update_mgr   = "/infra/services/Update-Manager", iofilter = "/infra/services/TCP-1443", vum = "/infra/services/VUM",
     vum_update   = "/infra/services/VUM-update", esxi_udp = "/infra/services/ESXi-UDP", dump_coll = "/infra/services/TCP-6500",
     auto_deploy  = "/infra/services/TCP-6501_6502", auth_proxy = "/infra/services/TCP-7475_7476",
-    nsx_rpc      = "/infra/services/TCP-1234_1235", nsx_amqp = "/infra/services/TCP-5671", avi_mgmt = "/infra/services/TCP-8443"
+    nsx_rpc      = "/infra/services/TCP-1234_1235", amqps = "/infra/services/TCP-5671", avi_mgmt = "/infra/services/TCP-8443"
   }
   sequence_number             = 4
   application_sequence_number = 110

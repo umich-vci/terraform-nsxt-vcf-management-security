@@ -69,15 +69,22 @@ variable "context_profile_paths" {
   description = "Policy paths of the context profiles, from the common module."
 }
 
-variable "hardware_support_managers" {
-  type = map(object({
-    group         = string
-    vcs           = list(string)
-    to_services   = list(string)
-    from_services = list(string)
+variable "hsm_group_paths" {
+  type        = list(string)
+  default     = []
+  description = "Policy paths of the Hardware Support Manager appliance groups, which join VCF_FLEET."
+}
+
+variable "hsm_rules" {
+  type = list(object({
+    display_name       = string
+    source_groups      = list(string)
+    destination_groups = list(string)
+    services           = list(string)
+    direction          = string
   }))
-  default     = {}
-  description = "Hardware Support Managers: the HSM group, the vCenter groups that use it, and the services each side opens to the other."
+  default     = []
+  description = "Hardware Support Manager rules for the VCF Fleet Policy, from the HSM vendor modules."
 }
 
 variable "application_lockdown_action" {

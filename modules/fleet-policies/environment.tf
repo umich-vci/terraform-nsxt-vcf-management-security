@@ -80,31 +80,18 @@ resource "nsxt_policy_security_policy" "fleet" {
     logged        = false
   }
 
-  # Not in the design guide: vSphere Lifecycle Manager Hardware Support Managers. Both ends are in
-  # VCF_FLEET, so each rule applies at the vCenter and at a DFW-protected HSM VM, ahead of the zone
-  # policies. Skipped when a side has no services (an empty list would mean any).
+  # Not in the design guide: vSphere Lifecycle Manager Hardware Support Managers, from the HSM vendor
+  # modules. The appliances are in VCF_FLEET, so these rules apply at the vCenters and at an appliance
+  # VM, ahead of the zone policies. Rules with an empty side are skipped (an empty list means any).
   dynamic "rule" {
-    for_each = { for k, h in var.hardware_support_managers : k => h if length(h.to_services) > 0 && length(h.vcs) > 0 }
+    for_each = [for r in var.hsm_rules : r if length(r.source_groups) > 0 && length(r.destination_groups) > 0 && length(r.services) > 0]
     content {
-      display_name       = "vCenters to HSM ${upper(rule.key)}"
-      source_groups      = rule.value.vcs
-      destination_groups = [rule.value.group]
-      services           = rule.value.to_services
+      display_name       = rule.value.display_name
+      source_groups      = rule.value.source_groups
+      destination_groups = rule.value.destination_groups
+      services           = rule.value.services
       action             = "ALLOW"
-      direction          = "IN_OUT"
-      logged             = false
-    }
-  }
-
-  dynamic "rule" {
-    for_each = { for k, h in var.hardware_support_managers : k => h if length(h.from_services) > 0 && length(h.vcs) > 0 }
-    content {
-      display_name       = "HSM ${upper(rule.key)} to vCenters"
-      source_groups      = [rule.value.group]
-      destination_groups = rule.value.vcs
-      services           = rule.value.from_services
-      action             = "ALLOW"
-      direction          = "IN_OUT"
+      direction          = rule.value.direction
       logged             = false
     }
   }

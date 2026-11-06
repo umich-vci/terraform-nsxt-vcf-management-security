@@ -26,6 +26,7 @@ mock_provider "nsxt" {
         "VMware-UpdateMgr-VUM"          = "/infra/services/VUM"
         "Vmware-UpdateMgr-update"       = "/infra/services/VUM-update"
         "VMware-ESXi5.x-UDP"            = "/infra/services/ESXi-UDP"
+        "CIM-HTTPS"                     = "/infra/services/CIM-HTTPS"
       }
     }
   }
@@ -40,6 +41,10 @@ mock_provider "nsxt" {
   }
   mock_resource "nsxt_policy_service" {
     defaults = { path = "/infra/services/MOCK" }
+  }
+  override_resource {
+    target = module.common.nsxt_policy_service.custom["tcp_3512"]
+    values = { path = "/infra/services/TCP-3512" }
   }
   mock_resource "nsxt_policy_context_profile" {
     defaults = { path = "/infra/context-profiles/MOCK" }
@@ -261,7 +266,7 @@ run "long_zone_display_name_falls_back_to_key" {
   }
 }
 
-run "hardware_support_manager_vcenters" {
+run "hpe_oneview_hsm" {
   variables {
     nsx_manager_clusters = {
       m01 = { vm_name_prefix = "m01-nsx01" }
@@ -272,55 +277,52 @@ run "hardware_support_manager_vcenters" {
       w01 = { vcenter_name = "w01-vc01", nsx_manager_cluster = "w01", hosts = ["203.0.113.0/28"] }
       w05 = { vcenter_name = "w05-vc01", nsx_manager_cluster = "w05", hosts = ["203.0.113.16/28"] }
     }
-    hardware_support_managers = {
-      oneview = { vm_name = "m01-hsm01", domains = ["m01", "w01"] }
-      ome     = { ips = ["198.51.100.70"], domains = ["w05"], to_hsm = ["/infra/services/SNMP"], from_hsm = ["/infra/services/HTTPS"] }
+    hpe_oneview_hsms = {
+      ov01 = { vm_name = "m01-hsm01", domains = ["m01", "w01"], oneview = ["192.0.2.70"], ilo = ["192.0.2.0/26"] }
+      ov02 = { vm_name = "m01-hsm02", domains = ["w05"] }
+      ov03 = { ips = ["198.51.100.70"], domains = ["w05"] }
     }
   }
 
   assert {
-    condition     = output.hardware_support_managers["oneview"].vcenter_groups == ["/infra/domains/default/groups/MOCK", "/infra/domains/default/groups/W01_VC"]
-    error_message = "An HSM should be allowed for the vCenters of its domains only: ${jsonencode(output.hardware_support_managers)}"
+    condition     = length(output.hpe_oneview_hsms["ov01"].rules) == 7
+    error_message = "A VM-specified appliance with OneView and iLOs should get all seven rules: ${jsonencode(output.hpe_oneview_hsms["ov01"].rules)}"
   }
   assert {
     condition = (
-      jsonencode(output.hardware_support_managers["oneview"].to_services) == jsonencode(["/infra/services/HTTPS"]) &&
-      length(output.hardware_support_managers["oneview"].from_services) == 0 &&
-      jsonencode(output.hardware_support_managers["ome"].to_services) == jsonencode(["/infra/services/SNMP"]) &&
-      jsonencode(output.hardware_support_managers["ome"].from_services) == jsonencode(["/infra/services/HTTPS"])
+      output.hpe_oneview_hsms["ov02"].oneview == null && output.hpe_oneview_hsms["ov02"].ilo == null &&
+      toset(output.hpe_oneview_hsms["ov02"].rules) == toset(["vCenters to HSM OV02", "HSM OV02 to vCenters", "HSM OV02 to ESX hosts", "Bastion to HSM OV02"])
     )
-    error_message = "to_hsm should default to the built-in HTTPS and from_hsm to none; given lists pass through."
+    error_message = "Without OneView or iLOs there should be no such groups or rules: ${jsonencode(output.hpe_oneview_hsms["ov02"])}"
+  }
+  assert {
+    condition     = toset(output.hpe_oneview_hsms["ov03"].rules) == toset(["vCenters to HSM OV03", "HSM OV03 to vCenters"])
+    error_message = "An appliance given only by IP should get just the vCenter rules."
+  }
+  assert {
+    condition     = contains(keys(output.policy_paths), "fleet")
+    error_message = "The VCF Fleet Policy should still exist."
   }
 }
 
 run "rejects_hsm_unknown_domain" {
   command = plan
   variables {
-    hardware_support_managers = {
-      oneview = { vm_name = "m01-hsm01", domains = ["w09"] }
+    hpe_oneview_hsms = {
+      ov01 = { vm_name = "m01-hsm01", domains = ["w09"] }
     }
   }
-  expect_failures = [var.hardware_support_managers]
+  expect_failures = [var.hpe_oneview_hsms]
 }
 
 run "rejects_hsm_without_vm_or_ips" {
   command = plan
   variables {
-    hardware_support_managers = {
-      oneview = { domains = ["m01"] }
+    hpe_oneview_hsms = {
+      ov01 = { domains = ["m01"] }
     }
   }
-  expect_failures = [var.hardware_support_managers]
-}
-
-run "rejects_hsm_service_name_instead_of_path" {
-  command = plan
-  variables {
-    hardware_support_managers = {
-      oneview = { vm_name = "m01-hsm01", domains = ["m01"], to_hsm = ["HTTPS"] }
-    }
-  }
-  expect_failures = [var.hardware_support_managers]
+  expect_failures = [var.hpe_oneview_hsms]
 }
 
 run "rejects_long_key" {

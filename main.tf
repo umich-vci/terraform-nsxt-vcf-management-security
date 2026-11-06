@@ -51,9 +51,8 @@ locals {
 module "common" {
   source = "./modules/common"
 
-  external_services         = var.external_services
-  internet_fqdns            = var.internet_fqdns
-  hardware_support_managers = { for k, h in var.hardware_support_managers : k => { vm_name = h.vm_name, ips = h.ips } }
+  external_services = var.external_services
+  internet_fqdns    = var.internet_fqdns
 }
 
 module "fleet_management" {
@@ -106,7 +105,23 @@ module "zone" {
   application_sequence_number = 10 + 100 * index(local.zone_order, each.key)
   lockdown_action             = var.lockdown_action
   application_lockdown_action = var.application_lockdown_action
+}
 
+module "hsm_hpe_oneview" {
+  source = "./modules/hsm-hpe-oneview"
+
+  hsms = {
+    for k, h in var.hpe_oneview_hsms : k => {
+      vm_name = h.vm_name
+      ips     = h.ips
+      oneview = h.oneview
+      ilo     = h.ilo
+      vcs     = [for d in distinct(h.domains) : module.domain[d].group_paths.vc]
+      hosts   = [for d in distinct(h.domains) : module.domain[d].group_paths.hosts if module.domain[d].group_paths.hosts != null]
+    }
+  }
+  service_paths = module.common.service_paths
+  bastion       = module.common.group_paths["bastion"]
 }
 
 module "fleet_policies" {
@@ -120,14 +135,9 @@ module "fleet_policies" {
   service_paths         = module.common.service_paths
   context_profile_paths = module.common.context_profile_paths
 
-  hardware_support_managers = {
-    for k, h in var.hardware_support_managers : k => {
-      group         = module.common.hsm_group_paths[k]
-      vcs           = [for d in distinct(h.domains) : module.domain[d].group_paths.vc]
-      to_services   = h.to_hsm == null ? [module.common.service_paths["https"]] : h.to_hsm
-      from_services = h.from_hsm
-    }
-  }
+  hsm_group_paths = module.hsm_hpe_oneview.group_paths
+  hsm_rules       = module.hsm_hpe_oneview.rules
+
   lockdown_action             = var.lockdown_action
   application_lockdown_action = var.application_lockdown_action
 }
